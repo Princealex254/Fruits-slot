@@ -51,7 +51,7 @@
             margin: auto;
             background: #300; /* Dark reddish background for the frame */
             border-radius: 40px; /* Rounded corners for phone shape */
-            padding: 10px; /* Padding inside the frame */
+            padding: 5px; /* Reduced padding inside the frame */
             box-shadow: 0 0 20px #000; /* Shadow for depth */
             display: flex; /* To center the game-area-wrapper */
             flex-direction: column;
@@ -74,7 +74,7 @@
             background: linear-gradient(to bottom, #922b2b, #b33939); /* Keep machine color */
             border-radius: 25px;
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
-            padding: 10px; /* Reduced padding around the internal components */
+            padding: 5px; /* Reduced padding around the internal components */
             box-sizing: border-box;
             border: 5px solid #ffeb3b; /* Gold border for the machine */
         }
@@ -93,12 +93,12 @@
             display: grid;
             grid-template-columns: repeat(7, 1fr); /* 7 columns for 24 items */
             grid-template-rows: repeat(7, 1fr);    /* 7 rows for 24 items */
-            padding: 10px;
+            padding: 5px; /* Reduced padding */
             box-sizing: border-box;
             border: 5px solid #ffeb3b; /* Gold border */
             min-width: unset; /* Removed */
             min-height: unset; /* Removed */
-            margin-bottom: 10px; /* Reduced space below the board */
+            margin-bottom: 5px; /* Reduced space below the board */
         }
 
         /* Precise positioning for 24 fruits/symbols on a 7x7 grid. */
@@ -139,7 +139,7 @@
 
         .slot-item {
             /* Increased font size for larger emojis */
-            font-size: 1.8em; /* Adjusted font size */
+            font-size: 1.6em; /* Slightly reduced font size */
             display: flex;
             flex-direction: column; /* Allow content to stack */
             justify-content: center;
@@ -165,12 +165,12 @@
         .slot-item[data-fruit="big-double-star-left"],
         .slot-item[data-fruit="big-bar"],
         .slot-item[data-fruit="small-bar-x50"] {
-            font-size: 1.4em; /* Slightly smaller to ensure fit */
+            font-size: 1.2em; /* Slightly smaller to ensure fit */
         }
 
         .slot-item span.small-text {
             /* Further reduced font size for multipliers */
-            font-size: 0.4em; /* Significantly reduced relative to parent */
+            font-size: 0.35em; /* Significantly reduced relative to parent */
             display: block; /* Ensure it's on a new line */
             margin-top: -1px; /* Pull it closer to the emoji */
             color: #ffeb3b; /* Yellow for multipliers */
@@ -180,7 +180,7 @@
         .slot-item.lucky-tab {
             background-color: #3f51b5; /* Blue for Lucky tabs */
             color: white;
-            font-size: 0.7em; /* Even smaller font for Lucky tabs */
+            font-size: 0.6em; /* Even smaller font for Lucky tabs */
             text-transform: uppercase;
             letter-spacing: 0.5px;
             box-shadow: 0 0 10px rgba(63, 81, 181, 0.5);
@@ -205,7 +205,7 @@
 
         .glowing-label {
             /* Reduced font size for "FRUIT SLOTS" */
-            font-size: 1.4em; /* Adjusted to be smaller */
+            font-size: 1.2em; /* Adjusted to be smaller */
             font-weight: bold;
             color: gold;
             text-shadow: 0 0 15px orange, 0 0 30px yellow, 0 0 45px orange;
@@ -214,10 +214,10 @@
         }
 
         .winning-display {
-            font-size: 2.8em; /* Adjusted font size */
+            font-size: 2.5em; /* Adjusted font size */
             font-weight: bold;
             color: #ccff00; /* Bright green for win numbers */
-            margin-top: 10px;
+            margin-top: 5px; /* Reduced margin */
             text-shadow: 0 0 10px #ccff00, 0 0 20px #99ff00;
         }
 
@@ -233,11 +233,11 @@
         .controls-area {
             width: 100%;
             background-color: #922b2b; /* Match machine body color */
-            padding: 10px; /* Reduced padding */
+            padding: 5px; /* Reduced padding */
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            gap: 10px; /* Reduced gap */
+            gap: 5px; /* Reduced gap */
             border-bottom-left-radius: 25px; /* Match machine body border radius */
             border-bottom-right-radius: 25px;
             border-top: 2px solid #ffeb3b; /* Gold border at top */
@@ -248,21 +248,21 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-end; /* Align stake info to bottom of its container */
-            gap: 10px;
+            gap: 5px; /* Reduced gap */
         }
 
         .stake-info {
             flex-grow: 1;
             background-color: #555; /* Darker background for stake info block */
-            padding: 8px; /* Reduced padding */
+            padding: 5px; /* Reduced padding */
             border-radius: 8px;
             box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
-            font-size: 0.9em; /* Adjusted font size */
+            font-size: 0.8em; /* Adjusted font size */
             color: #fff;
             display: flex;
             flex-direction: column;
             align-items: flex-start;
-            gap: 3px; /* Reduced gap */
+            gap: 2px; /* Reduced gap */
         }
         .stake-info div {
             width: 100%;
@@ -275,39 +275,39 @@
             color: #ccff00; /* Bright green for values */
         }
         .stake-info .available-amount {
-            font-size: 0.85em; /* Slightly smaller */
+            font-size: 0.8em; /* Slightly smaller */
             color: #ccc;
         }
         .stake-info .gift-info {
-            font-size: 0.75em; /* Slightly smaller */
+            font-size: 0.7em; /* Slightly smaller */
             color: #ffeb3b;
         }
 
         .go-button {
             background: linear-gradient(135deg, #ffc107, #ff9800); /* Yellow-orange gradient */
             color: #333;
-            padding: 8px 15px; /* Reduced padding for this GO button */
+            padding: 5px 10px; /* Reduced padding for this GO button */
             border: none;
             border-radius: 8px;
-            font-size: 1.1em; /* Reduced font size */
+            font-size: 1em; /* Reduced font size */
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
             transition: all 0.2s ease;
             letter-spacing: 1px;
             text-transform: uppercase;
-            width: 100px; /* Reduced width */
-            height: 55px; /* Reduced height */
+            width: 90px; /* Reduced width */
+            height: 50px; /* Reduced height */
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            line-height: 1.2; /* Adjust line height for better stacking */
+            line-height: 1.1; /* Adjust line height for better stacking */
         }
         .go-button .go-subtext {
-            font-size: 0.65em; /* Adjusted font size for visibility */
+            font-size: 0.6em; /* Adjusted font size for visibility */
             font-weight: normal;
-            margin-top: 2px; /* Reduced margin to pull closer to main text */
+            margin-top: 1px; /* Reduced margin to pull closer to main text */
             color: #555;
         }
         .go-button:hover {
@@ -327,9 +327,9 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap; /* Allow wrapping on small screens */
-            gap: 5px; /* Smaller gap */
+            gap: 3px; /* Even smaller gap */
             background-color: #555; /* Background for this row of buttons */
-            padding: 8px; /* Reduced padding */
+            padding: 5px; /* Reduced padding */
             border-radius: 8px;
             box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
         }
@@ -337,20 +337,20 @@
         .control-button {
             background-color: #007bff; /* Blue */
             color: white;
-            padding: 6px 10px; /* Reduced padding */
+            padding: 5px 8px; /* Reduced padding */
             border: none;
-            border-radius: 6px; /* Slightly smaller radius */
-            font-size: 0.8em; /* Smaller font */
+            border-radius: 5px; /* Slightly smaller radius */
+            font-size: 0.75em; /* Smaller font */
             cursor: pointer;
             font-weight: bold;
             transition: background-color 0.2s ease, transform 0.1s ease;
             flex-grow: 1;
-            min-width: 50px; /* Ensure buttons don't get too small */
+            min-width: 45px; /* Ensure buttons don't get too small */
             text-transform: uppercase;
         }
         .control-button.arrow-button {
-            font-size: 1.1em; /* Slightly smaller arrows */
-            padding: 6px 12px;
+            font-size: 1em; /* Slightly smaller arrows */
+            padding: 5px 10px;
         }
         .control-button.range-button {
             background-color: #ffc107; /* Yellow for range buttons */
@@ -374,15 +374,15 @@
             flex-wrap: nowrap; /* Prevent wrapping */
             overflow-x: auto; /* Enable horizontal scrolling */
             -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-            gap: 4px; /* Even smaller gap between buttons */
-            padding: 8px; /* Reduced padding */
+            gap: 3px; /* Even smaller gap between buttons */
+            padding: 5px; /* Reduced padding */
             background-color: #922b2b; /* Match machine body color */
             border-radius: 15px;
             box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
             border: 2px solid #ffeb3b; /* Gold border */
             width: 100%;
             box-sizing: border-box;
-            margin-top: 10px; /* Reduced space from controls-area */
+            margin-top: 5px; /* Reduced space from controls-area */
             justify-content: flex-start; /* Align items to the start */
             align-items: center; /* Center items vertically */
         }
@@ -407,15 +407,15 @@
 
         .fruit-selection-grid .fruit-button {
             flex-shrink: 0; /* Prevent buttons from shrinking */
-            width: 60px; /* Reduced width for consistency */
-            height: 60px; /* Reduced height for consistency */
+            width: 55px; /* Further reduced width for consistency */
+            height: 55px; /* Further reduced height for consistency */
             background-color: #28a745; /* Green background for selection buttons */
             color: white;
-            padding: 4px 2px; /* Reduced padding */
+            padding: 3px 1px; /* Reduced padding */
             border: 2px solid #ffeb3b; /* Gold border */
             border-radius: 10px;
             cursor: pointer;
-            font-size: 1.1em; /* Adjusted emoji size */
+            font-size: 1em; /* Adjusted emoji size */
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -430,14 +430,14 @@
         }
 
         .fruit-selection-grid .fruit-button .selection-count {
-            font-size: 0.65em; /* Size for 00, 01, 02 */
+            font-size: 0.6em; /* Size for 00, 01, 02 */
             font-weight: bold;
             color: #ccff00; /* Bright green for count */
             background-color: rgba(0, 0, 0, 0.4);
-            padding: 1px 5px; /* Reduced padding */
+            padding: 1px 4px; /* Reduced padding */
             border-radius: 5px;
             margin-top: 1px; /* Reduced margin */
-            min-width: 20px; /* Ensure consistent width */
+            min-width: 18px; /* Ensure consistent width */
             text-align: center;
         }
 
@@ -762,12 +762,12 @@
                 'small-bar-x50': { emoji: 'BAR', multiplier: 50, type: 'fixed', category: 'bar' }, // Updated multiplier
                 'big-bar': { emoji: 'BAR', multiplier: 100, type: 'fixed', category: 'bar' }, // Updated multiplier
                 'apple-x5': { emoji: '🍎', multiplier: 5, type: 'fixed', category: 'apple' },
-                'small-apple-x3-top': { emoji: '🍎', multiplier: 3, type: 'fixed', category: 'apple' },
+                'small-apple-x3-top': { emoji: '�', multiplier: 3, type: 'fixed', category: 'apple' },
                 'big-mango-top-right': { emoji: '🥭', multiplier: [10, 20], type: 'range', category: 'mango' },
 
                 // Right Column
                 'big-watermelon-right': { emoji: '🍉', multiplier: [20, 40], type: 'range', category: 'watermelon' },
-                'small-watermelon-x3-right': { emoji: '�', multiplier: 3, type: 'fixed', category: 'watermelon' },
+                'small-watermelon-x3-right': { emoji: '🍉', multiplier: 3, type: 'fixed', category: 'watermelon' },
                 'lucky-tab-right': { emoji: 'LUCKY', multiplier: 0, type: 'lucky', category: 'lucky-tab' },
                 'apple-right-middle': { emoji: '🍎', multiplier: 5, type: 'fixed', category: 'apple' },
                 'small-orange-x3-right': { emoji: '🍊', multiplier: 3, type: 'fixed', category: 'orange' },
@@ -1408,3 +1408,4 @@
     </script>
 </body>
 </html>
+�
