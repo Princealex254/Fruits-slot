@@ -762,14 +762,14 @@
                 'small-bar-x50': { emoji: 'BAR', multiplier: 50, type: 'fixed', category: 'bar' }, // Updated multiplier
                 'big-bar': { emoji: 'BAR', multiplier: 100, type: 'fixed', category: 'bar' }, // Updated multiplier
                 'apple-x5': { emoji: '🍎', multiplier: 5, type: 'fixed', category: 'apple' },
-                'small-apple-x3-top': { emoji: '�', multiplier: 3, type: 'fixed', category: 'apple' },
+                'small-apple-x3-top': { emoji: '🍎', multiplier: 3, type: 'fixed', category: 'apple' },
                 'big-mango-top-right': { emoji: '🥭', multiplier: [10, 20], type: 'range', category: 'mango' },
 
                 // Right Column
                 'big-watermelon-right': { emoji: '🍉', multiplier: [20, 40], type: 'range', category: 'watermelon' },
                 'small-watermelon-x3-right': { emoji: '🍉', multiplier: 3, type: 'fixed', category: 'watermelon' },
                 'lucky-tab-right': { emoji: 'LUCKY', multiplier: 0, type: 'lucky', category: 'lucky-tab' },
-                'apple-right-middle': { emoji: '🍎', multiplier: 5, type: 'fixed', category: 'apple' },
+                'apple-right-middle': { emoji: '�', multiplier: 5, type: 'fixed', category: 'apple' },
                 'small-orange-x3-right': { emoji: '🍊', multiplier: 3, type: 'fixed', category: 'orange' },
                 'big-orange-bottom-right': { emoji: '🍊', multiplier: [10, 20], type: 'range', category: 'orange' },
 
@@ -831,6 +831,17 @@
             const allBettableFruitDataNames = Object.keys(fruitsData).filter(key =>
                 fruitsData[key].type !== 'lucky' && fruitsData[key].type !== 'display'
             );
+
+            /**
+             * Shuffles an array in place using the Fisher-Yates (Knuth) algorithm.
+             * @param {Array} array The array to shuffle.
+             */
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+                }
+            }
 
             // Initialize fruit selection buttons for the new grid
             function initializeFruitButtons() {
@@ -1108,7 +1119,7 @@
                             el.classList.add('highlight'); // Keep highlight
                             hitFruitsForBlink.push(el); // Add to blinking array
                             await new Promise(res => setTimeout(res, 10)); // Small delay for audio scheduling
-                            synth.triggerAttackRelease("C5", "64n");
+                            synth.triggerAttackRelease("C5", "64n", Tone.context.currentTime);
                             await new Promise(res => setTimeout(res, 150));
 
                             const hitFruitDataName = el.dataset.fruit;
@@ -1325,15 +1336,18 @@
                     addHistory("Lucky Tab Hit! Initiating Bonus...");
                     // The luckyTabElement is already highlighted and added to hitFruitsForBlink from spin()
 
-                    const hits = Math.floor(Math.random() * 2) + 2; // 2–3 hits
-                    // Filter out lucky tabs and display-only fruits from potential lucky hits
-                    const potentialLuckyHitDataNames = allBettableFruitDataNames.filter(name =>
-                        fruitsData[name].category !== 'lucky-tab' && fruitsData[name].type !== 'display'
-                    );
+                    // Create a *copy* of the potentialLuckyHitDataNames array to shuffle
+                    const shuffledPotentialLuckyHitDataNames = [...allBettableFruitDataNames];
+                    shuffleArray(shuffledPotentialLuckyHitDataNames); // Shuffle the copied array
 
-                    // Shuffle the potential lucky fruits
-                    for (let i = 0; i < hits && potentialLuckyHitDataNames.length > 0; i++) {
-                        const randHitDataName = potentialLuckyHitDataNames.pop(); // Take from shuffled list
+                    const hits = Math.floor(Math.random() * 2) + 2; // 2–3 hits
+                    const luckyHits = [];
+                    // Pick 'hits' number of fruits from the shuffled array
+                    for (let i = 0; i < hits && i < shuffledPotentialLuckyHitDataNames.length; i++) {
+                        luckyHits.push(shuffledPotentialLuckyHitDataNames[i]);
+                    }
+
+                    for (let randHitDataName of luckyHits) { // Iterate over the selected lucky hits
                         const luckyFruitElement = slotItems.find(item => item.dataset.fruit === randHitDataName); // Find element by its exact data-fruit
 
                         if (luckyFruitElement) {
