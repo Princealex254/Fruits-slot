@@ -719,6 +719,24 @@
                 envelope: { attack: 0.02, decay: 0.1, sustain: 0.1, release: 0.2 }
             }).toDestination();
 
+            // Background Music (simple ambient loop)
+            const bgSynth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: "triangle" },
+                envelope: { attack: 2, decay: 1, sustain: 0.5, release: 2 }
+            }).toDestination();
+
+            const bgMelody = new Tone.Sequence((time, note) => {
+                bgSynth.triggerAttackRelease(note, "4n", time);
+            }, ["C3", "E3", "G3", "A3", "G3", "E3"]); // Simple repeating melody
+            bgMelody.loop = true;
+            bgMelody.playbackRate = 0.5; // Slower tempo for ambient feel
+
+            // Start background music when the document is ready
+            Tone.start().then(() => {
+                bgMelody.start();
+            }).catch(e => console.error("Tone.js audio start failed:", e));
+
+
             // Create a simple oscillator for the continuous moving sound
             const movingOscillator = new Tone.Oscillator().toDestination();
             movingOscillator.frequency.value = 440; // A4 note
@@ -747,9 +765,10 @@
             appleBonusMelody.playbackRate = 1.5;
 
             let accountBalance = 10000.00;
-            let selectedFruits = {}; // { categoryName: count (1 or 2) }
+            let selectedFruits = {}; // { categoryName: count (1 to MAX_FRUIT_STAKE_MULTIPLIER) }
             let currentStake = 0;
             let currentBetAmount = 10; // Default bet amount
+            const MAX_FRUIT_STAKE_MULTIPLIER = 5; // Maximum multiplier for a single fruit selection
 
             // Global variable to hold the blinking interval ID for bonus mode
             let bonusBlinkInterval = null;
@@ -769,7 +788,7 @@
                 'big-watermelon-right': { emoji: '🍉', multiplier: [20, 40], type: 'range', category: 'watermelon' },
                 'small-watermelon-x3-right': { emoji: '🍉', multiplier: 3, type: 'fixed', category: 'watermelon' },
                 'lucky-tab-right': { emoji: 'LUCKY', multiplier: 0, type: 'lucky', category: 'lucky-tab' },
-                'apple-right-middle': { emoji: '�', multiplier: 5, type: 'fixed', category: 'apple' },
+                'apple-right-middle': { emoji: '🍎', multiplier: 5, type: 'fixed', category: 'apple' },
                 'small-orange-x3-right': { emoji: '🍊', multiplier: 3, type: 'fixed', category: 'orange' },
                 'big-orange-bottom-right': { emoji: '🍊', multiplier: [10, 20], type: 'range', category: 'orange' },
 
@@ -877,37 +896,17 @@
                 if (!button) return;
 
                 const selectionCountSpan = button.querySelector('.selection-count');
+                let currentMultiplier = selectedFruits[categoryName] || 0;
 
-                if (selectedFruits[categoryName]) {
-                    if (selectedFruits[categoryName] === 1) {
-                        selectedFruits[categoryName] = 2;
-                        selectionCountSpan.textContent = '02';
-                        button.classList.add('selected');
-                    } else {
-                        delete selectedFruits[categoryName];
-                        button.classList.remove('selected');
-                        selectionCountSpan.textContent = '00';
-                    }
+                if (currentMultiplier < MAX_FRUIT_STAKE_MULTIPLIER) {
+                    selectedFruits[categoryName] = currentMultiplier + 1;
+                    selectionCountSpan.textContent = (currentMultiplier + 1).toString().padStart(2, '0');
+                    button.classList.add('selected');
                 } else {
-                    if (Object.keys(selectedFruits).length < 8) {
-                        selectedFruits[categoryName] = 1;
-                        button.classList.add('selected');
-                        selectionCountSpan.textContent = '01';
-                    } else {
-                        const messageBox = document.createElement('div');
-                        messageBox.style.cssText = `
-                            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-                            background-color: #333; color: white; padding: 20px; border-radius: 10px;
-                            box-shadow: 0 0 15px rgba(0,0,0,0.5); z-index: 1000; text-align: center;
-                            font-size: 1.1em;
-                        `;
-                        messageBox.textContent = 'You can select a maximum of 8 fruits.';
-                        document.body.appendChild(messageBox);
-                        setTimeout(() => {
-                            document.body.removeChild(messageBox);
-                        }, 2000);
-                        return;
-                    }
+                    // If already at max, reset to 0 (unselect)
+                    delete selectedFruits[categoryName];
+                    button.classList.remove('selected');
+                    selectionCountSpan.textContent = '00';
                 }
                 calculateStake();
             }
@@ -934,26 +933,25 @@
             }
 
             allX1Button.addEventListener('click', () => {
-                selectedFruits = {};
-                const fruitButtons = fruitSelectionGrid.querySelectorAll('.fruit-button');
-                fruitButtons.forEach(button => {
-                    button.classList.remove('selected'); // Clear selected state
-                    button.querySelector('.selection-count').textContent = '00'; // Reset count
-                });
+                let anyChange = false;
+                bettingCategories.forEach(category => {
+                    const categoryKey = category.key;
+                    const button = fruitSelectionGrid.querySelector(`[data-category="${categoryKey}"]`);
+                    if (!button) return;
 
-                let selectedCount = 0;
-                // Select up to 8 categories
-                for (let i = 0; i < bettingCategories.length && selectedCount < 8; i++) {
-                    const category = bettingCategories[i];
-                    selectedFruits[category.key] = 1;
-                    const button = fruitSelectionGrid.querySelector(`[data-category="${category.key}"]`);
-                    if (button) {
+                    const selectionCountSpan = button.querySelector('.selection-count');
+                    let currentMultiplier = selectedFruits[categoryKey] || 0;
+
+                    if (currentMultiplier < MAX_FRUIT_STAKE_MULTIPLIER) {
+                        selectedFruits[categoryKey] = currentMultiplier + 1;
+                        selectionCountSpan.textContent = (currentMultiplier + 1).toString().padStart(2, '0');
                         button.classList.add('selected');
-                        button.querySelector('.selection-count').textContent = '01';
+                        anyChange = true;
                     }
-                    selectedCount++;
+                });
+                if (anyChange) {
+                    calculateStake();
                 }
-                calculateStake();
             });
 
 
@@ -1041,7 +1039,7 @@
                             }
                         });
                         // Play a short sound for each blink
-                        synth.triggerAttackRelease("C5", "64n", Tone.context.currentTime); // Schedule at current time
+                        // Removed per-spin sound here to allow background music
                     }, blinkSoundInterval);
 
                     addHistory("Board Blinking for 5 seconds!");
@@ -1191,7 +1189,8 @@
                     // --- NORMAL SPIN (Default Mode) ---
                     addHistory("NORMAL SPIN: Simulating Spin...");
 
-                    let currentHighlightIndex = 0;
+                    // Random starting point for the light
+                    let currentHighlightIndex = Math.floor(Math.random() * slotItems.length);
                     let spinCount = 0;
                     const minFullCycles = 2;
                     const extraSteps = Math.floor(Math.random() * slotItems.length * 0.8) + 5;
@@ -1214,16 +1213,14 @@
                             }
 
                             // Remove highlight from previous item
-                            if (currentHighlightIndex > 0) {
-                                slotItems[currentHighlightIndex - 1].classList.remove('highlight');
-                            } else if (slotItems.length > 0) {
-                                slotItems[slotItems.length - 1].classList.remove('highlight');
+                            if (spinCount > 0) { // Only remove highlight if it's not the very first step
+                                const prevIndex = (currentHighlightIndex === 0) ? slotItems.length - 1 : currentHighlightIndex - 1;
+                                slotItems[prevIndex].classList.remove('highlight');
                             }
 
                             // Add highlight to current item
                             slotItems[currentHighlightIndex].classList.add('highlight');
-                            // Play a quick sound for each spin step
-                            synth.triggerAttackRelease("C6", "64n", Tone.context.currentTime);
+                            // Removed per-spin sound here to allow background music
 
 
                             currentHighlightIndex = (currentHighlightIndex + 1) % slotItems.length;
@@ -1422,4 +1419,3 @@
     </script>
 </body>
 </html>
-�
