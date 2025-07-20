@@ -229,6 +229,31 @@
             border-color: yellow;
         }
 
+        /* New class for smooth bonus blinking */
+        .slot-item.smooth-blink {
+            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out, box-shadow 0.4s ease-in-out;
+            opacity: 0;
+            transform: scale(0.9);
+            box-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+        }
+
+        .slot-item.smooth-blink.active {
+            opacity: 1;
+            transform: scale(1.15);
+            box-shadow: 0 0 25px 7px yellow, inset 0 0 10px yellow;
+        }
+
+        /* CSS for "dance a bit" */
+        @keyframes dance {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .slot-item.dancing {
+            animation: dance 0.3s ease-in-out infinite alternate;
+        }
+
+
         /* Controls area - contains stake info, GO button, and other control buttons */
         .controls-area {
             width: 100%;
@@ -238,7 +263,7 @@
             display: flex;
             flex-direction: column;
             gap: 5px; /* Reduced gap */
-            border-bottom-left-radius: 25px; /* Match machine body border radius */
+            border-bottom-left-radius: 25px;
             border-bottom-right-radius: 25px;
             border-top: 2px solid #ffeb3b; /* Gold border at top */
             box-shadow: inset 0 5px 10px rgba(0, 0, 0, 0.3);
@@ -740,8 +765,27 @@
             // Create a simple oscillator for the continuous moving sound
             const movingOscillator = new Tone.Oscillator().toDestination();
             movingOscillator.frequency.value = 440; // A4 note
-            movingOscillator.type = "sawtooth";
-            movingOscillator.volume.value = -15; // Lower volume
+            movingOscillator.type = "sine"; // Changed to sine for smoother sound
+            movingOscillator.volume.value = -25; // Further reduced volume
+            movingOscillator.detune.value = 0; // No detune for a cleaner sound
+
+            // New synth for bonus blinking sound
+            const bonusBlinkSynth = new Tone.Synth({
+                oscillator: { type: "square" },
+                envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.2 }
+            }).toDestination();
+
+            // New synth for the dancing/blinking phase sound in X3 bonus
+            const dancingSynth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: "sawtooth" },
+                envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 }
+            }).toDestination();
+            const dancingSequence = new Tone.Sequence((time, note) => {
+                dancingSynth.triggerAttackRelease(note, "8n", time);
+            }, ["C4", "E4", "G4", "A4"]); // Loop a simple arpeggio
+            dancingSequence.loop = true;
+            dancingSequence.playbackRate = 1;
+
 
             // New Tone.js elements for bonus music - REMOVED .toDestination()
             const x3BonusSequence = new Tone.Sequence((time, note) => {
@@ -851,6 +895,10 @@
                 fruitsData[key].type !== 'lucky' && fruitsData[key].type !== 'display'
             );
 
+            const barFruitDataNames = allBettableFruitDataNames.filter(key => fruitsData[key].category === 'bar');
+            const nonBarFruitDataNames = allBettableFruitDataNames.filter(key => fruitsData[key].category !== 'bar');
+
+
             /**
              * Shuffles an array in place using the Fisher-Yates (Knuth) algorithm.
              * @param {Array} array The array to shuffle.
@@ -861,6 +909,51 @@
                     [array[i], array[j]] = [array[j], array[i]]; // Swap elements
                 }
             }
+
+            /**
+             * Generates a path that includes full cycles around the board before reaching the target.
+             * @param {number} startIndex The starting index of the light.
+             * @param {number} endIndex The target index of the light.
+             * @param {number} totalItems The total number of items on the board.
+             * @param {number} fullCycles The number of full cycles to complete before heading to the target.
+             * @returns {Array<number>} An array of indices representing the path.
+             */
+            function generateLongPath(startIndex, endIndex, totalItems, fullCycles) {
+                const path = [];
+                let current = startIndex;
+
+                // Add full cycles
+                for (let i = 0; i < fullCycles * totalItems; i++) {
+                    current = (current + 1) % totalItems; // Always clockwise for full cycles
+                    path.push(current);
+                }
+
+                // Add the shortest path from the current position to the endIndex
+                const shortestPath = [];
+                let tempCurrent = current;
+                // Determine direction (clockwise or counter-clockwise) for shortest path
+                const clockwiseDist = (endIndex - tempCurrent + totalItems) % totalItems;
+                const counterClockwiseDist = (tempCurrent - endIndex + totalItems) % totalItems;
+
+                let stepsToTake;
+                let direction;
+
+                if (clockwiseDist <= counterClockwiseDist) {
+                    stepsToTake = clockwiseDist;
+                    direction = 1; // Clockwise
+                } else {
+                    stepsToTake = counterClockwiseDist;
+                    direction = -1; // Counter-clockwise
+                }
+
+                for (let i = 0; i < stepsToTake; i++) {
+                    tempCurrent = (tempCurrent + direction + totalItems) % totalItems;
+                    shortestPath.push(tempCurrent);
+                }
+
+                return path.concat(shortestPath);
+            }
+
 
             // Initialize fruit selection buttons for the new grid
             function initializeFruitButtons() {
@@ -922,11 +1015,11 @@
                 } else if (fruitInfo.type === 'range') {
                     // Custom logic for range multipliers
                     if (fruitInfo.category === 'orange' || fruitInfo.category === 'mango' || fruitInfo.category === 'bell') {
-                        // Big Mango / Orange / Bell: 10x fixed, 20% chance for 15x or 20x
-                        stakeMultiplier = Math.random() < 0.2 ? [15, 20][Math.floor(Math.random() * 2)] : 10;
+                        // Big Mango / Orange / Bell: 10x fixed, 5% chance for 15x or 20x
+                        stakeMultiplier = Math.random() < 0.05 ? [15, 20][Math.floor(Math.random() * 2)] : 10; // Changed from 0.2 to 0.05
                     } else { // 'star', '7', 'watermelon'
-                        // Big Double Star, Big 77, Big Watermelon: 20x fixed, 20% chance for 30x or 40x
-                        stakeMultiplier = Math.random() < 0.2 ? [30, 40][Math.floor(Math.random() * 2)] : 20;
+                        // Big Double Star, Big 77, Big Watermelon: 20x fixed, 5% chance for 30x or 40x
+                        stakeMultiplier = Math.random() < 0.05 ? [30, 40][Math.floor(Math.random() * 2)] : 20; // Changed from 0.2 to 0.05
                     }
                 }
                 return stakeMultiplier * currentBetAmount * betMultiplier;
@@ -967,13 +1060,28 @@
 
             goButton.addEventListener('click', spin);
 
+            let totalWinAmount = 0; // Global to accumulate wins across bonus functions
+            let hitFruitsForBlink = []; // Global to store fruits that should blink at the end
+
             async function spin() {
                 // Stop any previous bonus blinking and clear highlights from all items
                 if (bonusBlinkInterval) {
                     clearInterval(bonusBlinkInterval);
                     bonusBlinkInterval = null;
                 }
-                slotItems.forEach(item => item.classList.remove('highlight'));
+                slotItems.forEach(item => {
+                    item.classList.remove('highlight');
+                    item.classList.remove('smooth-blink', 'active'); // Ensure smooth-blink classes are removed
+                    item.classList.remove('dancing'); // Ensure dancing class is removed
+                    // Clear any individual blink intervals
+                    if (item.dataset.individualBlinkId) {
+                        clearInterval(item.dataset.individualBlinkId);
+                        delete item.dataset.individualBlinkId;
+                    }
+                });
+                totalWinAmount = 0; // Reset total win for new spin
+                hitFruitsForBlink = []; // Reset hit fruits for new spin
+
 
                 if (currentStake === 0) {
                     const messageBox = document.createElement('div');
@@ -1012,243 +1120,19 @@
                 currentWinDisplay.textContent = '0.00';
                 winningDisplay.textContent = '00';
 
-                let totalWinAmount = 0;
-                let hitFruitsForBlink = []; // Array to store fruits that should blink after bonus animation
+                // Determine game modes
+                const isBarBonusMode = Math.random() < 0.05; // New BAR bonus, 5% chance
+                const isSpecialMode = Math.random() < 0.08; // Existing bonus, 8% chance
 
-                // Determine game mode: 20% chance for special mode, 80% for normal spin
-                const isSpecialMode = Math.random() < 0.20; // Adjust probability as needed
-
-                if (isSpecialMode) {
-                    // --- SPECIAL MODE: Animation + Bonus ---
-                    addHistory("SPECIAL MODE: Animation + Bonus!");
-
-                    // 1. Full Board Blinking Light-Up for 5 seconds
-                    await Tone.start(); // Ensure audio context is started
-
-                    let blinkState = false;
-                    const blinkSoundInterval = 100; // Blink every 100ms
-                    const initialBlinkDuration = 5000; // 5 seconds
-
-                    const initialBlinkIntervalId = setInterval(() => {
-                        blinkState = !blinkState;
-                        slotItems.forEach(item => {
-                            if (blinkState) {
-                                item.classList.add('highlight');
-                            } else {
-                                item.classList.remove('highlight');
-                            }
-                        });
-                        // Play a short sound for each blink
-                        // Removed per-spin sound here to allow background music
-                    }, blinkSoundInterval);
-
-                    addHistory("Board Blinking for 5 seconds!");
-                    await new Promise(res => setTimeout(res, initialBlinkDuration)); // Wait for 5 seconds
-                    clearInterval(initialBlinkIntervalId); // Stop initial blinking
-                    // All highlights are removed by the interval, so we need to re-add them if they were supposed to stay
-                    slotItems.forEach(item => item.classList.remove('highlight')); // Ensure all off before bonus
-
-                    // 2. Random Reward Sequence Begins
-                    await Tone.start(); // Ensure audio context is started
-                    synth.triggerAttackRelease("D4", "16n"); // Sound for bonus sequence start
-
-
-                    const animationType = Math.floor(Math.random() * 4); // 0–3
-
-                    if (animationType === 0) {
-                        // Option 1: x3 Fruits Highlight & Award
-                        addHistory("Bonus Round: x3 Fruits!");
-                        x3BonusSequence.start(); // Start bonus music
-                        const x3Fruits = slotItems.filter(item => item.innerHTML.includes('x3'));
-                        for (let fruitEl of x3Fruits) {
-                            fruitEl.classList.add('highlight'); // Keep highlight
-                            hitFruitsForBlink.push(fruitEl); // Add to blinking array
-                            await new Promise(res => setTimeout(res, 10)); // Small delay for audio scheduling
-                            synth.triggerAttackRelease("E5", "32n");
-                            await new Promise(res => setTimeout(res, 300));
-
-                            const hitFruitDataName = fruitEl.dataset.fruit;
-                            const fruitCategory = fruitsData[hitFruitDataName].category;
-
-                            if (selectedFruits[fruitCategory]) { // Check if the category was staked
-                                const bonus = calculateSingleFruitWin(hitFruitDataName, selectedFruits[fruitCategory]);
-                                totalWinAmount += bonus;
-                                addHistory(`✨ BONUS x3 → ${fruitsData[hitFruitDataName].emoji} +KES ${bonus.toFixed(2)}`);
-                                playFruitHitSound(fruitCategory); // Play sound for hit fruit
-                            }
-                        }
-                        x3BonusSequence.stop(); // Stop bonus music
-                    } else if (animationType === 1) {
-                        // Option 2: Big Orange, Big Mango, Big Bell Award
-                        addHistory("Bonus Round: Big Fruits!");
-                        bigFruitBonusChord.triggerAttackRelease(["C4", "E4", "G4"], "1s"); // Play a chord for big fruit bonus
-                        // Explicitly target one of each desired big fruit
-                        const targetFruitDataNames = [
-                            'big-orange-top-left',
-                            'big-mango-top-right',
-                            'big-bell-top'
-                        ];
-                        const targetElements = targetFruitDataNames.map(name =>
-                            slotItems.find(item => item.dataset.fruit === name)
-                        ).filter(Boolean); // Filter out any undefined if an element isn't found
-
-                        for (let el of targetElements) {
-                            el.classList.add('highlight'); // Keep highlight
-                            hitFruitsForBlink.push(el); // Add to blinking array
-                            await new Promise(res => setTimeout(res, 10)); // Small delay for audio scheduling
-                            synth.triggerAttackRelease("G4", "16n");
-                            await new Promise(res => setTimeout(res, 400));
-
-                            const hitFruitDataName = el.dataset.fruit;
-                            const fruitCategory = fruitsData[hitFruitDataName].category;
-
-                            if (selectedFruits[fruitCategory]) { // Check if the category was staked
-                                const bonus = calculateSingleFruitWin(hitFruitDataName, selectedFruits[fruitCategory]);
-                                totalWinAmount += bonus;
-                                addHistory(`✨ BONUS Big Fruit → ${fruitsData[hitFruitDataName].emoji} +KES ${bonus.toFixed(2)}`);
-                                playFruitHitSound(fruitCategory); // Play sound for hit fruit
-                            }
-                        }
-                    } else if (animationType === 2) {
-                        // Option 3: Full Board Payout Reveal (All 28 Fruits)
-                        addHistory("Bonus Round: Full Board Reveal!");
-                        fullBoardSequence.start(); // Start bonus music
-                        for (let el of slotItems) {
-                            el.classList.add('highlight'); // Keep highlight
-                            hitFruitsForBlink.push(el); // Add to blinking array
-                            await new Promise(res => setTimeout(res, 10)); // Small delay for audio scheduling
-                            synth.triggerAttackRelease("C5", "64n", Tone.context.currentTime);
-                            await new Promise(res => setTimeout(res, 150));
-
-                            const hitFruitDataName = el.dataset.fruit;
-                            const fruitCategory = fruitsData[hitFruitDataName].category;
-                            const fruitInfo = fruitsData[hitFruitDataName];
-
-                            if (selectedFruits[fruitCategory] && fruitInfo && fruitInfo.type !== 'lucky' && fruitInfo.type !== 'display') {
-                                const bonus = calculateSingleFruitWin(hitFruitDataName, selectedFruits[fruitCategory]);
-                                totalWinAmount += bonus;
-                                addHistory(`🎉 ALL HIT → ${fruitInfo.emoji} +KES ${bonus.toFixed(2)}`);
-                                playFruitHitSound(fruitCategory); // Play sound for hit fruit
-                            }
-                        }
-                        fullBoardSequence.stop(); // Stop bonus music
-                    } else if (animationType === 3) {
-                        // Option 4: All Apple Fruits Hit & Award
-                        addHistory("Bonus Round: All Apples Hit!");
-                        appleBonusMelody.start(); // Start bonus music
-                        // Filter for all items that belong to the 'apple' category
-                        const allAppleFruits = slotItems.filter(item => fruitsData[item.dataset.fruit]?.category === 'apple');
-
-                        for (let appleEl of allAppleFruits) {
-                            // Simulate swift movement to each apple
-                            const currentLuckyFruitIndex = slotItems.indexOf(hitFruitsForBlink[hitFruitsForBlink.length - 1] || slotItems[0]); // Start from last hit or first item
-                            const targetLuckyFruitIndex = slotItems.indexOf(appleEl);
-                            const path = getPath(currentLuckyFruitIndex, targetLuckyFruitIndex, slotItems.length);
-
-                            // Create a temporary moving sound synth for this segment
-                            const tempMovingSynth = new Tone.Synth({
-                                oscillator: { type: "sine" },
-                                envelope: { attack: 0.01, decay: 0.05, sustain: 0.05, release: 0.05 }
-                            }).toDestination();
-                            const movingSoundLoop = new Tone.Loop(time => {
-                                tempMovingSynth.triggerAttackRelease("C4", "32n", time);
-                            }, "16n").start(0);
-
-                            for (let k = 0; k < path.length; k++) {
-                                const index = path[k];
-                                slotItems[index].classList.add('highlight');
-                                await new Promise(res => setTimeout(res, k < path.length - 3 ? 40 : 120)); // Swift then slow
-                                slotItems[index].classList.remove('highlight');
-                            }
-                            movingSoundLoop.stop();
-                            movingSoundLoop.dispose();
-                            tempMovingSynth.dispose(); // Dispose the temporary synth
-
-                            appleEl.classList.add('highlight'); // Keep highlight on the apple
-                            hitFruitsForBlink.push(appleEl); // Add to blinking array
-
-                            await Tone.start();
-                            synth.triggerAttackRelease("E5", "16n", Tone.context.currentTime); // Distinct hit sound
-                            playFruitHitSound(fruitsData[appleEl.dataset.fruit].category); // Play sound for hit apple
-                            await new Promise(res => setTimeout(res, 300));
-
-                            const hitFruitDataName = appleEl.dataset.fruit;
-                            const fruitCategory = fruitsData[hitFruitDataName].category;
-                            const fruitInfo = fruitsData[hitFruitDataName];
-
-                            if (selectedFruits[fruitCategory] && fruitInfo && fruitInfo.type !== 'lucky' && fruitInfo.type !== 'display') {
-                                const bonus = calculateSingleFruitWin(hitFruitDataName, selectedFruits[fruitCategory]);
-                                totalWinAmount += bonus;
-                                addHistory(`🍏 APPLE BONUS → ${fruitInfo.emoji} +KES ${bonus.toFixed(2)}`);
-                            }
-                        }
-                        appleBonusMelody.stop(); // Stop bonus music
-                    }
-
+                if (isBarBonusMode) {
+                    await handleBarBonus();
+                } else if (isSpecialMode) {
+                    await handleSpecialModeBonus();
                 } else {
-                    // --- NORMAL SPIN (Default Mode) ---
-                    addHistory("NORMAL SPIN: Simulating Spin...");
-
-                    // Random starting point for the light
-                    let currentHighlightIndex = Math.floor(Math.random() * slotItems.length);
-                    let spinCount = 0;
-                    const minFullCycles = 2;
-                    const extraSteps = Math.floor(Math.random() * slotItems.length * 0.8) + 5;
-                    const totalSpins = (minFullCycles * slotItems.length) + extraSteps;
-
-                    // Start continuous moving sound
-                    await Tone.start();
-                    movingOscillator.start();
-
-                    await new Promise(resolve => {
-                        // Recursive function for the spin animation
-                        const animateSpin = () => {
-                            // Calculate dynamic delay for slowdown effect
-                            const remainingSpins = totalSpins - spinCount;
-                            let delay = 80; // Base delay
-                            if (remainingSpins < 10) { // Start slowing down in the last 10 steps
-                                delay = 80 + (10 - remainingSpins) * 20; // Increase delay by 20ms per step
-                            } else if (remainingSpins < 20) { // Slightly earlier slowdown
-                                delay = 80 + (20 - remainingSpins) * 5;
-                            }
-
-                            // Remove highlight from previous item
-                            if (spinCount > 0) { // Only remove highlight if it's not the very first step
-                                const prevIndex = (currentHighlightIndex === 0) ? slotItems.length - 1 : currentHighlightIndex - 1;
-                                slotItems[prevIndex].classList.remove('highlight');
-                            }
-
-                            // Add highlight to current item
-                            slotItems[currentHighlightIndex].classList.add('highlight');
-                            // Removed per-spin sound here to allow background music
-
-
-                            currentHighlightIndex = (currentHighlightIndex + 1) % slotItems.length;
-                            spinCount++;
-
-                            if (spinCount >= totalSpins) {
-                                movingOscillator.stop(); // Stop continuous sound
-                                const finalWinningIndex = (currentHighlightIndex === 0) ? slotItems.length - 1 : currentHighlightIndex - 1;
-                                const winningFruitElement = slotItems[finalWinningIndex];
-                                const winningFruitDataName = winningFruitElement.dataset.fruit; // Get the specific data-fruit name
-
-                                // Keep the final winning element highlighted
-                                winningFruitElement.classList.add('highlight');
-                                hitFruitsForBlink.push(winningFruitElement); // Add to blinking array
-
-                                setTimeout(async () => { // Make this callback async
-                                    totalWinAmount += await processNormalSpinWin(winningFruitDataName, winningFruitElement, hitFruitsForBlink); // Pass hitFruitsForBlink
-                                    resolve(); // Resolve the main promise here
-                                }, 500); // Small delay to show final highlight
-                            } else {
-                                setTimeout(animateSpin, delay); // Continue the loop with the calculated delay
-                            }
-                        };
-                        animateSpin(); // Start the recursive animation
-                    });
+                    await handleNormalSpin();
                 }
 
-                // This block runs AFTER both special mode animations/calculations OR normal spin completes
+                // This block runs AFTER the chosen bonus/spin handler completes
                 accountBalance += totalWinAmount;
                 currentWinDisplay.textContent = totalWinAmount.toFixed(2);
                 winningDisplay.textContent = totalWinAmount > 0 ? totalWinAmount.toFixed(0) : '00';
@@ -1271,12 +1155,735 @@
                 }
             }
 
+            // --- Bonus Handling Functions ---
+
+            async function handleSpecialModeBonus() {
+                addHistory("SPECIAL MODE: Animation + Bonus!");
+
+                // 1. Full Board Blinking Light-Up for 5 seconds (smooth blinking)
+                await Tone.start();
+                let blinkState = false;
+                const blinkIntervalTime = 400;
+                const initialBlinkDuration = 5000;
+
+                slotItems.forEach(item => item.classList.add('smooth-blink'));
+
+                const initialBlinkIntervalId = setInterval(() => {
+                    blinkState = !blinkState;
+                    slotItems.forEach((item, index) => {
+                        if (blinkState) {
+                            item.classList.add('active');
+                            bonusBlinkSynth.triggerAttackRelease("C5", "32n", Tone.context.currentTime + (index * 0.001)); // Fix: Use Tone.context.currentTime
+                        } else {
+                            item.classList.remove('active');
+                        }
+                    });
+                }, blinkIntervalTime / 2);
+
+                addHistory("Board Blinking for 5 seconds!");
+                await new Promise(res => setTimeout(res, initialBlinkDuration));
+                clearInterval(initialBlinkIntervalId);
+                slotItems.forEach(item => {
+                    item.classList.remove('active');
+                    item.classList.remove('smooth-blink');
+                });
+
+                await Tone.start();
+                synth.triggerAttackRelease("D4", "16n");
+
+                const animationType = Math.floor(Math.random() * 4); // 0–3
+
+                if (animationType === 0) {
+                    await handleX3BonusSequence();
+                } else if (animationType === 1) {
+                    await handleBigFruitsBonusSequence();
+                } else if (animationType === 2) {
+                    await handleFullBoardPayoutBonus(); // Updated logic
+                } else if (animationType === 3) {
+                    await handleAllApplesBonusSequence();
+                }
+            }
+
+            async function handleBarBonus() {
+                addHistory("BAR BONUS: Two BARs light up!");
+                goButton.disabled = true;
+
+                const barElements = slotItems.filter(item => fruitsData[item.dataset.fruit].category === 'bar');
+
+                // Blink the two BARs for 5 seconds
+                let blinkState = false;
+                const barBlinkIntervalId = setInterval(() => {
+                    blinkState = !blinkState;
+                    barElements.forEach((item, index) => { // Fix: Add index
+                        if (blinkState) {
+                            item.classList.add('highlight');
+                            bonusBlinkSynth.triggerAttackRelease("G4", "32n", Tone.context.currentTime + (index * 0.001)); // Fix: Use Tone.context.currentTime
+                        } else {
+                            item.classList.remove('highlight');
+                        }
+                    });
+                }, 300); // Faster blink for this specific bonus
+
+                await new Promise(res => setTimeout(res, 5000));
+                clearInterval(barBlinkIntervalId);
+                barElements.forEach(item => item.classList.remove('highlight')); // Ensure they are off
+
+                addHistory("BAR Bonus: Light moving for random fruits!");
+
+                // Light moves 1.5 rounds, then hits 2-4 random fruits
+                const numHits = Math.floor(Math.random() * 3) + 2; // 2-4 fruits
+                const potentialLuckyFruits = allBettableFruitDataNames.filter(name => fruitsData[name].category !== 'bar'); // Exclude BARs
+                shuffleArray(potentialLuckyFruits);
+
+                let currentLightIndex = slotItems.indexOf(barElements[0]); // Start from one of the BARs
+
+                for (let i = 0; i < numHits; i++) {
+                    if (potentialLuckyFruits.length === 0) break;
+
+                    const targetFruitDataName = potentialLuckyFruits.pop();
+                    const targetFruitElement = slotItems.find(item => item.dataset.fruit === targetFruitDataName);
+                    if (!targetFruitElement) continue;
+
+                    const targetIndex = slotItems.indexOf(targetFruitElement);
+                    const path = generateLongPath(currentLightIndex, targetIndex, slotItems.length, 1.5); // 1.5 full cycles
+
+                    const tempMovingSynth = new Tone.Synth({
+                        oscillator: { type: "sine" },
+                        envelope: { attack: 0.01, decay: 0.05, sustain: 0.05, release: 0.05 }
+                    }).toDestination();
+                    const movingSoundLoop = new Tone.Loop(time => {
+                        tempMovingSynth.triggerAttackRelease("C4", "32n", time);
+                    }, "16n").start(0);
+
+                    for (let k = 0; k < path.length; k++) {
+                        const index = path[k];
+                        slotItems[index].classList.add('highlight');
+                        await new Promise(res => setTimeout(res, k < path.length - 3 ? 25 : 75));
+                        slotItems[index].classList.remove('highlight');
+                    }
+                    movingSoundLoop.stop();
+                    movingSoundLoop.dispose();
+                    tempMovingSynth.dispose();
+
+                    targetFruitElement.classList.add('highlight'); // Keep highlight on the target
+                    hitFruitsForBlink.push(targetFruitElement); // Add to blinking array
+
+                    await Tone.start();
+                    synth.triggerAttackRelease("E5", "16n", Tone.context.currentTime);
+                    playFruitHitSound(fruitsData[targetFruitDataName].category);
+                    await new Promise(res => setTimeout(res, 100));
+
+                    const hitFruitCategory = fruitsData[targetFruitDataName].category;
+                    if (selectedFruits[hitFruitCategory]) {
+                        const bonus = calculateSingleFruitWin(targetFruitDataName, selectedFruits[hitFruitCategory]);
+                        totalWinAmount += bonus;
+                        addHistory(`💰 BAR BONUS HIT → ${fruitsData[targetFruitDataName].emoji} +KES ${bonus.toFixed(2)}`);
+                    } else {
+                        addHistory(`💰 BAR BONUS MISS → ${fruitsData[targetFruitDataName].emoji} (Not Staked)`);
+                    }
+                    currentLightIndex = targetIndex; // Update current index for next path
+                }
+            }
+
+            async function handleX3BonusSequence() {
+                addHistory("Bonus Round: x3 Fruits!");
+                x3BonusSequence.start();
+                const x3Fruits = slotItems.filter(item => item.innerHTML.includes('x3'));
+                let currentLightIndex = slotItems.indexOf(slotItems[0]); // Start from a default position
+
+                for (let fruitEl of x3Fruits) {
+                    const targetIndex = slotItems.indexOf(fruitEl);
+                    const path = generateLongPath(currentLightIndex, targetIndex, slotItems.length, 1.5); // 1.5 full cycles
+
+                    const tempMovingSynth = new Tone.Synth({
+                        oscillator: { type: "sine" },
+                        envelope: { attack: 0.01, decay: 0.05, sustain: 0.05, release: 0.05 }
+                    }).toDestination();
+                    const movingSoundLoop = new Tone.Loop(time => {
+                        tempMovingSynth.triggerAttackRelease("C4", "32n", time);
+                    }, "16n").start(0);
+
+                    for (let k = 0; k < path.length; k++) {
+                        const index = path[k];
+                        slotItems[index].classList.add('highlight');
+                        await new Promise(res => setTimeout(res, k < path.length - 3 ? 25 : 75));
+                        slotItems[index].classList.remove('highlight');
+                    }
+                    movingSoundLoop.stop();
+                    movingSoundLoop.dispose();
+                    tempMovingSynth.dispose();
+
+                    fruitEl.classList.add('highlight');
+                    hitFruitsForBlink.push(fruitEl);
+                    await new Promise(res => setTimeout(res, 10));
+                    synth.triggerAttackRelease("E5", "32n");
+                    await new Promise(res => setTimeout(res, 100));
+
+                    const hitFruitDataName = fruitEl.dataset.fruit;
+                    const fruitCategory = fruitsData[hitFruitDataName].category;
+
+                    if (selectedFruits[fruitCategory]) {
+                        const bonus = calculateSingleFruitWin(hitFruitDataName, selectedFruits[fruitCategory]);
+                        totalWinAmount += bonus;
+                        addHistory(`✨ BONUS x3 → ${fruitsData[hitFruitDataName].emoji} +KES ${bonus.toFixed(2)}`);
+                        playFruitHitSound(fruitCategory);
+                    }
+                    currentLightIndex = targetIndex; // Update current index for next path
+                }
+                x3BonusSequence.stop();
+            }
+
+            async function handleBigFruitsBonusSequence() {
+                addHistory("Bonus Round: Big Fruits!");
+                bigFruitBonusChord.triggerAttackRelease(["C4", "E4", "G4"], "1s");
+
+                const targetFruitDataNames = [
+                    'big-orange-top-left',
+                    'big-mango-top-right',
+                    'big-bell-top'
+                ];
+                const targetElements = targetFruitDataNames.map(name =>
+                    slotItems.find(item => item.dataset.fruit === name)
+                ).filter(Boolean);
+
+                let currentLightIndex = slotItems.indexOf(slotItems[0]); // Start from a default position
+
+                for (let el of targetElements) {
+                    const targetIndex = slotItems.indexOf(el);
+                    const path = generateLongPath(currentLightIndex, targetIndex, slotItems.length, 1.5); // 1.5 full cycles
+
+                    const tempMovingSynth = new Tone.Synth({
+                        oscillator: { type: "sine" },
+                        envelope: { attack: 0.01, decay: 0.05, sustain: 0.05, release: 0.05 }
+                    }).toDestination();
+                    const movingSoundLoop = new Tone.Loop(time => {
+                        tempMovingSynth.triggerAttackRelease("C4", "32n", time);
+                    }, "16n").start(0);
+
+                    for (let k = 0; k < path.length; k++) {
+                        const index = path[k];
+                        slotItems[index].classList.add('highlight');
+                        await new Promise(res => setTimeout(res, k < path.length - 3 ? 25 : 75));
+                        slotItems[index].classList.remove('highlight');
+                    }
+                    movingSoundLoop.stop();
+                    movingSoundLoop.dispose();
+                    tempMovingSynth.dispose();
+
+                    el.classList.add('highlight');
+                    hitFruitsForBlink.push(el);
+
+                    await Tone.start();
+                    synth.triggerAttackRelease("G4", "16n");
+                    await new Promise(res => setTimeout(res, 150));
+
+                    const hitFruitDataName = el.dataset.fruit;
+                    const fruitCategory = fruitsData[hitFruitDataName].category;
+
+                    if (selectedFruits[fruitCategory]) {
+                        const bonus = calculateSingleFruitWin(hitFruitDataName, selectedFruits[fruitCategory]);
+                        totalWinAmount += bonus;
+                        addHistory(`✨ BONUS Big Fruit → ${fruitsData[hitFruitDataName].emoji} +KES ${bonus.toFixed(2)}`);
+                        playFruitHitSound(fruitCategory);
+                    }
+                    currentLightIndex = targetIndex; // Update current index for next path
+                }
+            }
+
+            async function handleFullBoardPayoutBonus() {
+                addHistory("Bonus Round: Full Board Payout (Sequential Hit)!");
+                fullBoardSequence.start(); // Start bonus music
+
+                // Shuffle slot items to hit them in a random order
+                const shuffledSlotItems = [...slotItems];
+                shuffleArray(shuffledSlotItems);
+
+                let individuallyBlinkingFruits = []; // To track fruits that are blinking individually
+
+                // Sequential hitting and individual blinking
+                let currentLightIndex = slotItems.indexOf(shuffledSlotItems[0]); // Start from the first shuffled item
+
+                for (let i = 0; i < shuffledSlotItems.length; i++) {
+                    const targetFruitElement = shuffledSlotItems[i];
+                    const targetIndex = slotItems.indexOf(targetFruitElement);
+
+                    // Path from current light position to the next target, 1.5 cycles
+                    const path = generateLongPath(currentLightIndex, targetIndex, slotItems.length, 1.5);
+
+                    const tempMovingSynth = new Tone.Synth({
+                        oscillator: { type: "sine" },
+                        envelope: { attack: 0.01, decay: 0.05, sustain: 0.05, release: 0.05 }
+                    }).toDestination();
+                    const movingSoundLoop = new Tone.Loop(time => {
+                        tempMovingSynth.triggerAttackRelease("C4", "32n", time);
+                    }, "16n").start(0);
+
+                    for (let k = 0; k < path.length; k++) {
+                        const index = path[k];
+                        slotItems[index].classList.add('highlight');
+                        await new Promise(res => setTimeout(res, k < path.length - 3 ? 25 : 75)); // Swift then slow
+                        slotItems[index].classList.remove('highlight');
+                    }
+                    movingSoundLoop.stop();
+                    movingSoundLoop.dispose();
+                    tempMovingSynth.dispose();
+
+                    // Once the light hits, the fruit starts blinking individually
+                    targetFruitElement.classList.add('highlight'); // Keep it highlighted
+                    individuallyBlinkingFruits.push(targetFruitElement); // Add to the list for individual blinking
+
+                    // Start individual blinking for this fruit
+                    let fruitBlinkState = true;
+                    const individualBlinkInterval = setInterval(() => {
+                        fruitBlinkState = !fruitBlinkState;
+                        if (fruitBlinkState) {
+                            targetFruitElement.classList.add('highlight');
+                        } else {
+                            targetFruitElement.classList.remove('highlight');
+                        }
+                    }, 300); // Individual blink speed
+                    targetFruitElement.dataset.individualBlinkId = individualBlinkInterval; // Store ID to clear later
+
+                    await Tone.start();
+                    synth.triggerAttackRelease("E5", "16n", Tone.context.currentTime); // Distinct hit sound
+                    playFruitHitSound(fruitsData[targetFruitElement.dataset.fruit].category);
+                    await new Promise(res => setTimeout(res, 100)); // Small pause after hitting
+
+                    const hitFruitDataName = targetFruitElement.dataset.fruit;
+                    const fruitCategory = fruitsData[hitFruitDataName].category;
+                    const fruitInfo = fruitsData[hitFruitDataName];
+
+                    if (selectedFruits[fruitCategory] && fruitInfo && fruitInfo.type !== 'lucky' && fruitInfo.type !== 'display') {
+                        const bonus = calculateSingleFruitWin(hitFruitDataName, selectedFruits[fruitCategory]);
+                        totalWinAmount += bonus;
+                        addHistory(`🎉 SEQUENTIAL HIT → ${fruitInfo.emoji} +KES ${bonus.toFixed(2)}`);
+                    }
+                    currentLightIndex = targetIndex; // Update current index for next path
+                }
+
+                fullBoardSequence.stop(); // Stop bonus music after all fruits are hit
+
+                // After all 28 are done, clear individual blinks and start collective blinking
+                addHistory("All fruits hit! Now blinking together.");
+                individuallyBlinkingFruits.forEach(fruitEl => {
+                    clearInterval(fruitEl.dataset.individualBlinkId);
+                    fruitEl.classList.remove('highlight'); // Ensure they are off before collective blink
+                });
+
+                // Start collective blinking for all 28 fruits
+                let collectiveBlinkState = false;
+                bonusBlinkInterval = setInterval(() => { // Reuse global bonusBlinkInterval
+                    collectiveBlinkState = !collectiveBlinkState;
+                    slotItems.forEach((item, index) => { // All 28 fruits // Fix: Add index
+                        if (collectiveBlinkState) {
+                            item.classList.add('highlight');
+                            bonusBlinkSynth.triggerAttackRelease("C6", "32n", Tone.context.currentTime + (index * 0.001)); // Higher pitch for collective // Fix: Use Tone.context.currentTime
+                        } else {
+                            item.classList.remove('highlight');
+                        }
+                    });
+                }, 400); // Collective blink speed
+            }
+
+            async function handleAllApplesBonusSequence() {
+                addHistory("Bonus Round: All Apples Hit (excluding small x3)!");
+                appleBonusMelody.start();
+                // Filter for all items that belong to the 'apple' category, excluding 'small-apple-x3-top'
+                const allAppleFruits = slotItems.filter(item =>
+                    fruitsData[item.dataset.fruit]?.category === 'apple' && item.dataset.fruit !== 'small-apple-x3-top'
+                );
+
+                let currentLightIndex = slotItems.indexOf(slotItems[0]); // Start from a default position
+
+                for (let appleEl of allAppleFruits) {
+                    const targetLuckyFruitIndex = slotItems.indexOf(appleEl);
+                    const path = generateLongPath(currentLightIndex, targetLuckyFruitIndex, slotItems.length, 1.5); // 1.5 full cycles
+
+                    const tempMovingSynth = new Tone.Synth({
+                        oscillator: { type: "sine" },
+                        envelope: { attack: 0.01, decay: 0.05, sustain: 0.05, release: 0.05 }
+                    }).toDestination();
+                    const movingSoundLoop = new Tone.Loop(time => {
+                        tempMovingSynth.triggerAttackRelease("C4", "32n", time);
+                    }, "16n").start(0);
+
+                    for (let k = 0; k < path.length; k++) {
+                        const index = path[k];
+                        slotItems[index].classList.add('highlight');
+                        await new Promise(res => setTimeout(res, k < path.length - 3 ? 25 : 75));
+                        slotItems[index].classList.remove('highlight');
+                    }
+                    movingSoundLoop.stop();
+                    movingSoundLoop.dispose();
+                    tempMovingSynth.dispose();
+
+                    appleEl.classList.add('highlight');
+                    hitFruitsForBlink.push(appleEl);
+
+                    await Tone.start();
+                    synth.triggerAttackRelease("E5", "16n", Tone.context.currentTime);
+                    playFruitHitSound(fruitsData[appleEl.dataset.fruit].category);
+                    await new Promise(res => setTimeout(res, 100));
+
+                    const hitFruitDataName = appleEl.dataset.fruit;
+                    const fruitCategory = fruitsData[hitFruitDataName].category;
+                    const fruitInfo = fruitsData[hitFruitDataName];
+
+                    if (selectedFruits[fruitCategory] && fruitInfo && fruitInfo.type !== 'lucky' && fruitInfo.type !== 'display') {
+                        const bonus = calculateSingleFruitWin(hitFruitDataName, selectedFruits[fruitCategory]);
+                        totalWinAmount += bonus;
+                        addHistory(`🍏 APPLE BONUS → ${fruitInfo.emoji} +KES ${bonus.toFixed(2)}`);
+                    }
+                    currentLightIndex = targetLuckyFruitIndex; // Update current index for next path
+                }
+                appleBonusMelody.stop();
+            }
+
+            async function handleNormalSpin() {
+                addHistory("NORMAL SPIN: Simulating Spin...");
+
+                let currentHighlightIndex = Math.floor(Math.random() * slotItems.length);
+                let spinCount = 0;
+                const minFullCycles = 2;
+                const extraSteps = Math.floor(Math.random() * slotItems.length * 0.8) + 5;
+                const totalSpins = (minFullCycles * slotItems.length) + extraSteps;
+
+                await Tone.start();
+                movingOscillator.start();
+
+                await new Promise(resolve => {
+                    const animateSpin = () => {
+                        const remainingSpins = totalSpins - spinCount;
+                        let delay = 40;
+                        if (remainingSpins < 10) {
+                            delay = 40 + (10 - remainingSpins) * 10;
+                        } else if (remainingSpins < 20) {
+                            delay = 40 + (20 - remainingSpins) * 2;
+                        }
+
+                        if (spinCount > 0) {
+                            const prevIndex = (currentHighlightIndex === 0) ? slotItems.length - 1 : currentHighlightIndex - 1;
+                            slotItems[prevIndex].classList.remove('highlight');
+                        }
+
+                        slotItems[currentHighlightIndex].classList.add('highlight');
+
+                        currentHighlightIndex = (currentHighlightIndex + 1) % slotItems.length;
+                        spinCount++;
+
+                        if (spinCount >= totalSpins) {
+                            movingOscillator.stop();
+                            let finalWinningIndex = (currentHighlightIndex === 0) ? slotItems.length - 1 : currentHighlightIndex - 1;
+                            let winningFruitElement = slotItems[finalWinningIndex];
+                            let winningFruitDataName = winningFruitElement.dataset.fruit;
+
+                            // Store the original winning fruit and its data name before any re-rolling
+                            const originalWinningFruitElement = winningFruitElement;
+                            const originalWinningFruitDataName = winningFruitDataName;
+
+                            let shouldTriggerBarBonus = false;
+
+                            // --- BAR Rarity Logic for Normal Spin ---
+                            if (fruitsData[originalWinningFruitDataName].category === 'bar') {
+                                if (Math.random() <= 0.01) { // 1% chance for BAR to be the actual hit
+                                    addHistory("BAR hit! Triggering BAR bonus (1% chance).");
+                                    shouldTriggerBarBonus = true;
+                                } else { // 99% chance to re-roll
+                                    addHistory("BAR hit, re-rolling to non-BAR fruit.");
+                                    const nonBarIndices = slotItems
+                                        .map((item, index) => ({ item, index }))
+                                        .filter(obj => fruitsData[obj.item.dataset.fruit].category !== 'bar')
+                                        .map(obj => obj.index);
+
+                                    if (nonBarIndices.length > 0) {
+                                        finalWinningIndex = nonBarIndices[Math.floor(Math.random() * nonBarIndices.length)];
+                                        winningFruitElement = slotItems[finalWinningIndex];
+                                        winningFruitDataName = winningFruitElement.dataset.fruit;
+                                    } else {
+                                        addHistory("Warning: No non-BAR fruits to re-roll to!");
+                                    }
+                                }
+                            }
+                            // --- End BAR Rarity Logic ---
+
+                            // Keep the final winning element highlighted for a moment before further processing
+                            winningFruitElement.classList.remove('highlight'); // Remove highlight from the spinning one
+                            // Highlight the *actual* determined winning fruit (original BAR or re-rolled non-BAR)
+                            slotItems[finalWinningIndex].classList.add('highlight');
+
+
+                            setTimeout(async () => {
+                                if (shouldTriggerBarBonus) {
+                                    // Pass the original BAR element and its data name to the bonus handler
+                                    await handleNormalSpinBarBonus(originalWinningFruitElement, originalWinningFruitDataName);
+                                } else {
+                                    // Pass the potentially re-rolled fruit to the normal processing
+                                    await processNormalSpinWin(winningFruitDataName, winningFruitElement);
+                                }
+                                resolve();
+                            }, 500);
+                        } else {
+                            setTimeout(animateSpin, delay);
+                        }
+                    };
+                    animateSpin();
+                });
+            }
+
+            // This function now handles the win for non-BARs or re-rolled non-BARs
+            async function processNormalSpinWin(winningFruitDataName, winningFruitElement) {
+                const fruitInfo = fruitsData[winningFruitDataName];
+                const fruitCategory = fruitInfo.category;
+
+                // Ensure the element is highlighted if it's the final winning fruit (after re-roll or normal hit)
+                hitFruitsForBlink.push(winningFruitElement); // Now add it here for blinking
+
+                // Check for the new X3 bonus condition (if it's a small x3 fruit and not a BAR)
+                const isSmallX3Fruit = ['small-apple-x3-top', 'small-watermelon-x3-right', 'small-orange-x3-right', 'small-7-x3-bottom', 'small-mango-x3-bottom', 'small-star-x3-left', 'small-bell-x3-left'].includes(winningFruitDataName);
+
+                if (isSmallX3Fruit && Math.random() < 0.10) { // 10% chance for X3 bonus
+                    await handleX3SmallFruitBonus(winningFruitElement, winningFruitDataName);
+                } else {
+                    // Existing logic for normal spin win
+                    if (fruitInfo && fruitInfo.type !== 'lucky' && fruitInfo.type !== 'display') {
+                        if (selectedFruits[fruitCategory]) {
+                            const win = calculateSingleFruitWin(winningFruitDataName, selectedFruits[fruitCategory]);
+                            totalWinAmount += win;
+                            const displayName = fruitDisplayNames[fruitCategory] || fruitCategory;
+                            addHistory(`Normal Spin Win: ${displayName} ${fruitInfo.emoji} → +KES ${win.toFixed(2)}`);
+                            playFruitHitSound(fruitCategory);
+                        } else {
+                            const displayName = fruitDisplayNames[fruitCategory] || fruitCategory;
+                            addHistory(`Normal Spin: ${displayName} ${fruitInfo.emoji} (Not Staked)`);
+                        }
+                    }
+
+                    // Apply "Lucky" feature if lucky-tab is the main win
+                    if (winningFruitDataName.includes('lucky-tab')) {
+                        addHistory("Lucky Tab Hit! Initiating Bonus...");
+
+                        const hits = Math.floor(Math.random() * 2) + 2; // 2–3 hits
+                        const luckyHits = [];
+
+                        const tempNonBarFruits = [...nonBarFruitDataNames];
+                        const tempBarFruits = [...barFruitDataNames];
+                        shuffleArray(tempNonBarFruits);
+                        shuffleArray(tempBarFruits);
+
+                        for (let i = 0; i < hits; i++) {
+                            if (Math.random() <= 0.01 && tempBarFruits.length > 0) { // 1% chance for BAR
+                                luckyHits.push(tempBarFruits.pop());
+                            } else if (tempNonBarFruits.length > 0) {
+                                luckyHits.push(tempNonBarFruits.pop());
+                            } else if (tempBarFruits.length > 0) {
+                                luckyHits.push(tempBarFruits.pop());
+                            } else {
+                                console.warn("Could not pick enough lucky fruits!");
+                                break;
+                            }
+                        }
+
+                        let currentLuckyFruitIndex = slotItems.indexOf(winningFruitElement); // Start from the lucky tab
+
+                        for (let randHitDataName of luckyHits) {
+                            const luckyFruitElement = slotItems.find(item => item.dataset.fruit === randHitDataName);
+
+                            if (luckyFruitElement) {
+                                const luckyMovingSynth = new Tone.Synth({
+                                    oscillator: { type: "sine" },
+                                    envelope: { attack: 0.01, decay: 0.05, sustain: 0.05, release: 0.05 }
+                                }).toDestination();
+                                const movingSoundLoop = new Tone.Loop(time => {
+                                    luckyMovingSynth.triggerAttackRelease("C4", "32n", time);
+                                }, "16n").start(0);
+
+                                const targetLuckyFruitIndex = slotItems.indexOf(luckyFruitElement);
+                                const path = generateLongPath(currentLuckyFruitIndex, targetLuckyFruitIndex, slotItems.length, 1.5); // 1.5 full cycles
+
+                                for (let k = 0; k < path.length; k++) {
+                                    const index = path[k];
+                                    slotItems[index].classList.add('highlight');
+                                    await new Promise(res => setTimeout(res, k < path.length - 3 ? 25 : 75));
+                                    slotItems[index].classList.remove('highlight');
+                                }
+                                movingSoundLoop.stop();
+                                movingSoundLoop.dispose();
+                                luckyMovingSynth.dispose();
+
+                                luckyFruitElement.classList.add('highlight');
+                                hitFruitsForBlink.push(luckyFruitElement);
+
+                                await Tone.start();
+                                synth.triggerAttackRelease("E5", "16n", Tone.context.currentTime);
+                                playFruitHitSound(fruitsData[randHitDataName].category);
+                                await new Promise(res => setTimeout(res, 100));
+
+                                const luckyFruitCategory = fruitsData[randHitDataName].category;
+                                if (selectedFruits[luckyFruitCategory]) {
+                                    const bonus = calculateSingleFruitWin(randHitDataName, selectedFruits[luckyFruitCategory]);
+                                    totalWinAmount += bonus;
+                                    addHistory(`🍀 LUCKY HIT → ${fruitsData[randHitDataName].emoji} +KES ${bonus.toFixed(2)}`);
+                                } else {
+                                    addHistory(`🍀 LUCKY MISS → ${fruitsData[randHitDataName].emoji} (Not Staked)`);
+                                }
+                                currentLuckyFruitIndex = targetLuckyFruitIndex;
+                            }
+                        }
+                        Tone.Transport.stop();
+                        await new Promise(res => setTimeout(res, 500));
+                    }
+                }
+            }
+
+            async function handleX3SmallFruitBonus(hitFruitElement, hitFruitDataName) {
+                addHistory("X3 BONUS: Light scrolling and dancing fruits!");
+                goButton.disabled = true;
+
+                // Clear hitFruitsForBlink for this specific bonus sequence
+                hitFruitsForBlink = [];
+
+                // Phase 1: Dancing with Lights for 6 seconds
+                slotItems.forEach(item => item.classList.add('dancing')); // Start all fruits dancing
+
+                let blinkState = false;
+                const allFruitsBlinkInterval = setInterval(() => {
+                    blinkState = !blinkState;
+                    slotItems.forEach((item, index) => {
+                        if (blinkState) {
+                            item.classList.add('highlight');
+                            bonusBlinkSynth.triggerAttackRelease("C5", "32n", Tone.context.currentTime + (index * 0.001));
+                        } else {
+                            item.classList.remove('highlight');
+                        }
+                    });
+                }, 200); // Faster blink for "dancing with lights"
+
+                // Start dancing music
+                dancingSequence.start(Tone.context.currentTime);
+
+                await new Promise(res => setTimeout(res, 6000)); // Wait for 6 seconds
+
+                // Stop dancing and blinking
+                clearInterval(allFruitsBlinkInterval);
+                dancingSequence.stop(); // Stop dancing music
+                slotItems.forEach(item => {
+                    item.classList.remove('dancing');
+                    item.classList.remove('highlight'); // Ensure all highlights are off before final hit
+                });
+
+                // Phase 2: Final Hit and Bonus Award
+                hitFruitElement.classList.add('highlight'); // Highlight the original hit fruit again
+                hitFruitsForBlink.push(hitFruitElement); // Add to global blinking array for post-spin blinking
+
+                await Tone.start();
+                synth.triggerAttackRelease("F5", "16n", Tone.context.currentTime); // Distinct bonus hit sound
+                playFruitHitSound(fruitsData[hitFruitDataName].category);
+                await new Promise(res => setTimeout(res, 100));
+
+                const bonusMultiplier = Math.floor(Math.random() * 11) + 10; // 10-20x
+                const bonusAmount = currentBetAmount * bonusMultiplier; // Stake placed on that fruit's category
+                totalWinAmount += bonusAmount;
+                addHistory(`🌟 X3 BONUS: ${fruitsData[hitFruitDataName].emoji} → +KES ${bonusAmount.toFixed(2)} (${bonusMultiplier}x Stake)`);
+            }
+
+            async function handleNormalSpinBarBonus(hitFruitElement, hitFruitDataName) {
+                addHistory(`BAR HIT! ${fruitsData[hitFruitDataName].emoji} → Initiating BAR Bonus!`);
+                goButton.disabled = true;
+
+                // Clear any previous highlights and blinking
+                slotItems.forEach(item => {
+                    item.classList.remove('highlight');
+                    item.classList.remove('dancing');
+                });
+                hitFruitsForBlink = []; // Reset for this bonus
+
+                // 1. Calculate and add initial BAR win
+                const barCategory = fruitsData[hitFruitDataName].category;
+                if (selectedFruits[barCategory]) {
+                    const barWin = calculateSingleFruitWin(hitFruitDataName, selectedFruits[barCategory]);
+                    totalWinAmount += barWin;
+                    addHistory(`BAR WIN: ${fruitsData[hitFruitDataName].emoji} +KES ${barWin.toFixed(2)}`);
+                    playFruitHitSound(barCategory);
+                } else {
+                    addHistory(`BAR HIT: ${fruitsData[hitFruitDataName].emoji} (Not Staked)`);
+                }
+
+                // Keep the initial BAR highlighted for now, it will be added to hitFruitsForBlink later
+                hitFruitElement.classList.add('highlight');
+                // The hitFruitsForBlink will be populated by this function, including the initial BAR
+
+                await new Promise(res => setTimeout(res, 500)); // Short pause after initial BAR hit
+
+                // 2. Light moves 1.5 rounds and hits 1-3 random fruits
+                const numHits = Math.floor(Math.random() * 3) + 1; // 1-3 random fruits
+                // Filter out BARs and Lucky Tabs for subsequent hits
+                const potentialRandomFruits = allBettableFruitDataNames.filter(name =>
+                    fruitsData[name].category !== 'bar' && fruitsData[name].type !== 'lucky'
+                );
+                shuffleArray(potentialRandomFruits);
+
+                let currentLightIndex = slotItems.indexOf(hitFruitElement); // Start light from the hit BAR
+
+                for (let i = 0; i < numHits; i++) {
+                    if (potentialRandomFruits.length === 0) {
+                        addHistory("Warning: Not enough non-BAR fruits for subsequent hits!");
+                        break;
+                    }
+
+                    const targetFruitDataName = potentialRandomFruits.pop();
+                    const targetFruitElement = slotItems.find(item => item.dataset.fruit === targetFruitDataName);
+                    if (!targetFruitElement) continue;
+
+                    const targetIndex = slotItems.indexOf(targetFruitElement);
+                    const path = generateLongPath(currentLightIndex, targetIndex, slotItems.length, 1.5); // 1.5 full cycles
+
+                    const tempMovingSynth = new Tone.Synth({
+                        oscillator: { type: "sine" },
+                        envelope: { attack: 0.01, decay: 0.05, sustain: 0.05, release: 0.05 }
+                    }).toDestination();
+                    const movingSoundLoop = new Tone.Loop(time => {
+                        tempMovingSynth.triggerAttackRelease("C4", "32n", time);
+                    }, "16n").start(0);
+
+                    for (let k = 0; k < path.length; k++) {
+                        const index = path[k];
+                        slotItems[index].classList.add('highlight');
+                        await new Promise(res => setTimeout(res, k < path.length - 3 ? 25 : 75)); // Swift then slow
+                        slotItems[index].classList.remove('highlight');
+                    }
+                    movingSoundLoop.stop();
+                    movingSoundLoop.dispose();
+                    tempMovingSynth.dispose();
+
+                    targetFruitElement.classList.add('highlight'); // Keep highlight on the target
+                    hitFruitsForBlink.push(targetFruitElement); // Add to blinking array
+
+                    await Tone.start();
+                    synth.triggerAttackRelease("E5", "16n", Tone.context.currentTime); // Distinct hit sound
+                    playFruitHitSound(fruitsData[targetFruitDataName].category);
+                    await new Promise(res => setTimeout(res, 100));
+
+                    const hitFruitCategory = fruitsData[targetFruitDataName].category;
+                    if (selectedFruits[hitFruitCategory]) {
+                        const bonus = calculateSingleFruitWin(targetFruitDataName, selectedFruits[hitFruitCategory]);
+                        totalWinAmount += bonus;
+                        addHistory(`🎁 BAR BONUS HIT → ${fruitsData[targetFruitDataName].emoji} +KES ${bonus.toFixed(2)}`);
+                    } else {
+                        addHistory(`🎁 BAR BONUS MISS → ${fruitsData[targetFruitDataName].emoji} (Not Staked)`);
+                    }
+                    currentLightIndex = targetIndex; // Update current index for next path
+                }
+
+                // Finally, add the initial BAR hit element to hitFruitsForBlink so it blinks with the others
+                hitFruitsForBlink.push(hitFruitElement);
+            }
+
+
             // Helper function to get a path for the moving light
             function getPath(startIndex, endIndex, totalItems) {
                 const path = [];
                 let currentIndex = startIndex;
 
-                // Determine direction (clockwise or counter-clockwise)
                 const clockwiseDist = (endIndex - startIndex + totalItems) % totalItems;
                 const counterClockwiseDist = (startIndex - endIndex + totalItems) % totalItems;
 
@@ -1285,13 +1892,12 @@
 
                 if (clockwiseDist <= counterClockwiseDist) {
                     stepsToTake = clockwiseDist;
-                    direction = 1; // Clockwise
+                    direction = 1;
                 } else {
                     stepsToTake = counterClockwiseDist;
-                    direction = -1; // Counter-clockwise
+                    direction = -1;
                 }
 
-                // Generate the path, including the target, but not the starting point
                 for (let i = 0; i < stepsToTake; i++) {
                     currentIndex = (currentIndex + direction + totalItems) % totalItems;
                     path.push(currentIndex);
@@ -1308,99 +1914,6 @@
                     }).catch(e => console.error("Tone.js audio start failed for fruit hit sound:", e));
                 }
             }
-
-            // New function for normal spin win processing
-            async function processNormalSpinWin(winningFruitDataName, winningFruitElement, hitFruitsForBlink) { // Takes the specific data-fruit name and element
-                let winAmount = 0;
-                const fruitInfo = fruitsData[winningFruitDataName];
-                const fruitCategory = fruitInfo.category; // Get the category of the hit fruit
-
-                // Process win for the main winning fruit IF its category was staked on
-                if (fruitInfo && fruitInfo.type !== 'lucky' && fruitInfo.type !== 'display') {
-                    if (selectedFruits[fruitCategory]) { // Check if the category was staked
-                        winAmount += calculateSingleFruitWin(winningFruitDataName, selectedFruits[fruitCategory]);
-                        const displayName = fruitDisplayNames[fruitCategory] || fruitCategory; // Get readable name
-                        addHistory(`Normal Spin Win: ${displayName} ${fruitInfo.emoji} → +KES ${winAmount.toFixed(2)}`); // Updated message
-                        playFruitHitSound(fruitCategory); // Play sound for hit fruit
-                    } else {
-                        const displayName = fruitDisplayNames[fruitCategory] || fruitCategory;
-                        addHistory(`Normal Spin: ${displayName} ${fruitInfo.emoji} (Not Staked)`); // Updated message
-                    }
-                }
-
-                // Apply "Lucky" feature if lucky-tab is the main win
-                if (winningFruitDataName.includes('lucky-tab')) {
-                    addHistory("Lucky Tab Hit! Initiating Bonus...");
-                    // The luckyTabElement is already highlighted and added to hitFruitsForBlink from spin()
-
-                    // Create a *copy* of the potentialLuckyHitDataNames array to shuffle
-                    const shuffledPotentialLuckyHitDataNames = [...allBettableFruitDataNames];
-                    shuffleArray(shuffledPotentialLuckyHitDataNames); // Shuffle the copied array
-
-                    const hits = Math.floor(Math.random() * 2) + 2; // 2–3 hits
-                    const luckyHits = [];
-                    // Pick 'hits' number of fruits from the shuffled array
-                    for (let i = 0; i < hits && i < shuffledPotentialLuckyHitDataNames.length; i++) {
-                        luckyHits.push(shuffledPotentialLuckyHitDataNames[i]);
-                    }
-
-                    for (let randHitDataName of luckyHits) { // Iterate over the selected lucky hits
-                        const luckyFruitElement = slotItems.find(item => item.dataset.fruit === randHitDataName); // Find element by its exact data-fruit
-
-                        if (luckyFruitElement) {
-                            // Start moving sound for this segment
-                            const luckyMovingSynth = new Tone.Synth({
-                                oscillator: { type: "sine" },
-                                envelope: { attack: 0.01, decay: 0.05, sustain: 0.05, release: 0.05 } // Shorter envelope for rapid sound
-                            }).toDestination();
-                            const movingSoundLoop = new Tone.Loop(time => {
-                                luckyMovingSynth.triggerAttackRelease("C4", "32n", time); // Play a C4 note every 32nd note
-                            }, "16n").start(0); // Faster repetition for swiftness
-
-                            // Simulate swift movement
-                            const currentLuckyFruitIndex = slotItems.indexOf(winningFruitElement); // Start from the lucky tab
-                            const targetLuckyFruitIndex = slotItems.indexOf(luckyFruitElement);
-                            const path = getPath(currentLuckyFruitIndex, targetLuckyFruitIndex, slotItems.length);
-
-                            for (let k = 0; k < path.length; k++) {
-                                const index = path[k];
-                                slotItems[index].classList.add('highlight');
-                                await new Promise(res => setTimeout(res, k < path.length - 3 ? 40 : 120)); // Swift then slow
-                                slotItems[index].classList.remove('highlight');
-                            }
-
-                            // Stop moving sound for this segment
-                            movingSoundLoop.stop();
-                            movingSoundLoop.dispose(); // Dispose the loop after use
-                            luckyMovingSynth.dispose(); // Dispose the temporary synth
-
-                            luckyFruitElement.classList.add('highlight'); // Keep highlight
-                            hitFruitsForBlink.push(luckyFruitElement); // Add to blinking array
-
-                            await Tone.start();
-                            synth.triggerAttackRelease("E5", "16n", Tone.context.currentTime); // Distinct hit sound
-                            playFruitHitSound(fruitsData[randHitDataName].category); // Play sound for hit fruit
-                            await new Promise(res => setTimeout(res, 300));
-
-                            const luckyFruitCategory = fruitsData[randHitDataName].category;
-                            // Process payout if the category was staked
-                            if (selectedFruits[luckyFruitCategory]) {
-                                const bonus = calculateSingleFruitWin(randHitDataName, selectedFruits[luckyFruitCategory]);
-                                winAmount += bonus;
-                                addHistory(`🍀 LUCKY HIT → ${fruitsData[randHitDataName].emoji} +KES ${bonus.toFixed(2)}`);
-                            } else {
-                                addHistory(`🍀 LUCKY MISS → ${fruitsData[randHitDataName].emoji} (Not Staked)`);
-                            }
-                        }
-                    }
-                    Tone.Transport.stop(); // Stop global transport after all lucky hits are done
-
-                    await new Promise(res => setTimeout(res, 500)); // Final pause after all lucky hits
-                }
-
-                return winAmount;
-            }
-
 
             function addHistory(text) {
                 const listItem = document.createElement('li');
