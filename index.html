@@ -825,7 +825,7 @@
                 'small-bar-x50': { emoji: 'BAR', multiplier: 50, type: 'fixed', category: 'bar' }, // Updated multiplier
                 'big-bar': { emoji: 'BAR', multiplier: 100, type: 'fixed', category: 'bar' }, // Updated multiplier
                 'apple-x5': { emoji: '🍎', multiplier: 5, type: 'fixed', category: 'apple' },
-                'small-apple-x3-top': { emoji: '🍎', multiplier: 3, type: 'fixed', category: 'apple' },
+                'small-apple-x3-top': { emoji: '�', multiplier: 3, type: 'fixed', category: 'apple' },
                 'big-mango-top-right': { emoji: '🥭', multiplier: [10, 20], type: 'range', category: 'mango' },
 
                 // Right Column
@@ -1121,12 +1121,10 @@
                 winningDisplay.textContent = '00';
 
                 // Determine game modes
-                const isBarBonusMode = Math.random() < 0.05; // New BAR bonus, 5% chance
+                // Removed isBarBonusMode from here, as it's now handled within handleNormalSpin
                 const isSpecialMode = Math.random() < 0.08; // Existing bonus, 8% chance
 
-                if (isBarBonusMode) {
-                    await handleBarBonus();
-                } else if (isSpecialMode) {
+                if (isSpecialMode) {
                     await handleSpecialModeBonus();
                 } else {
                     await handleNormalSpin();
@@ -1173,7 +1171,7 @@
                     slotItems.forEach((item, index) => {
                         if (blinkState) {
                             item.classList.add('active');
-                            bonusBlinkSynth.triggerAttackRelease("C5", "32n", Tone.context.currentTime + (index * 0.001)); // Fix: Use Tone.context.currentTime
+                            bonusBlinkSynth.triggerAttackRelease("C5", "32n", Tone.context.currentTime + (index * 0.001));
                         } else {
                             item.classList.remove('active');
                         }
@@ -1204,38 +1202,39 @@
                 }
             }
 
+            // This function is no longer called from `spin()` directly.
+            // It was replaced by `handleNormalSpinBarBonus` for the 1% chance BAR bonus.
+            // Keeping it here for reference/if it's used elsewhere, but it's effectively unused by the main spin flow now.
             async function handleBarBonus() {
-                addHistory("BAR BONUS: Two BARs light up!");
+                addHistory("BAR BONUS: Two BARs light up!"); // This log might be misleading now
                 goButton.disabled = true;
 
                 const barElements = slotItems.filter(item => fruitsData[item.dataset.fruit].category === 'bar');
 
-                // Blink the two BARs for 5 seconds
                 let blinkState = false;
                 const barBlinkIntervalId = setInterval(() => {
                     blinkState = !blinkState;
-                    barElements.forEach((item, index) => { // Fix: Add index
+                    barElements.forEach((item, index) => {
                         if (blinkState) {
                             item.classList.add('highlight');
-                            bonusBlinkSynth.triggerAttackRelease("G4", "32n", Tone.context.currentTime + (index * 0.001)); // Fix: Use Tone.context.currentTime
+                            bonusBlinkSynth.triggerAttackRelease("G4", "32n", Tone.context.currentTime + (index * 0.001));
                         } else {
                             item.classList.remove('highlight');
                         }
                     });
-                }, 300); // Faster blink for this specific bonus
+                }, 300);
 
                 await new Promise(res => setTimeout(res, 5000));
                 clearInterval(barBlinkIntervalId);
-                barElements.forEach(item => item.classList.remove('highlight')); // Ensure they are off
+                barElements.forEach(item => item.classList.remove('highlight'));
 
                 addHistory("BAR Bonus: Light moving for random fruits!");
 
-                // Light moves 1.5 rounds, then hits 2-4 random fruits
                 const numHits = Math.floor(Math.random() * 3) + 2; // 2-4 fruits
-                const potentialLuckyFruits = allBettableFruitDataNames.filter(name => fruitsData[name].category !== 'bar'); // Exclude BARs
+                const potentialLuckyFruits = allBettableFruitDataNames.filter(name => fruitsData[name].category !== 'bar');
                 shuffleArray(potentialLuckyFruits);
 
-                let currentLightIndex = slotItems.indexOf(barElements[0]); // Start from one of the BARs
+                let currentLightIndex = slotItems.indexOf(barElements[0]);
 
                 for (let i = 0; i < numHits; i++) {
                     if (potentialLuckyFruits.length === 0) break;
@@ -1245,7 +1244,7 @@
                     if (!targetFruitElement) continue;
 
                     const targetIndex = slotItems.indexOf(targetFruitElement);
-                    const path = generateLongPath(currentLightIndex, targetIndex, slotItems.length, 1.5); // 1.5 full cycles
+                    const path = generateLongPath(currentLightIndex, targetIndex, slotItems.length, 1.5);
 
                     const tempMovingSynth = new Tone.Synth({
                         oscillator: { type: "sine" },
@@ -1265,8 +1264,8 @@
                     movingSoundLoop.dispose();
                     tempMovingSynth.dispose();
 
-                    targetFruitElement.classList.add('highlight'); // Keep highlight on the target
-                    hitFruitsForBlink.push(targetFruitElement); // Add to blinking array
+                    targetFruitElement.classList.add('highlight');
+                    hitFruitsForBlink.push(targetFruitElement);
 
                     await Tone.start();
                     synth.triggerAttackRelease("E5", "16n", Tone.context.currentTime);
@@ -1281,7 +1280,7 @@
                     } else {
                         addHistory(`💰 BAR BONUS MISS → ${fruitsData[targetFruitDataName].emoji} (Not Staked)`);
                     }
-                    currentLightIndex = targetIndex; // Update current index for next path
+                    currentLightIndex = targetIndex;
                 }
             }
 
@@ -1474,10 +1473,10 @@
                 let collectiveBlinkState = false;
                 bonusBlinkInterval = setInterval(() => { // Reuse global bonusBlinkInterval
                     collectiveBlinkState = !collectiveBlinkState;
-                    slotItems.forEach((item, index) => { // All 28 fruits // Fix: Add index
+                    slotItems.forEach((item, index) => { // All 28 fruits
                         if (collectiveBlinkState) {
                             item.classList.add('highlight');
-                            bonusBlinkSynth.triggerAttackRelease("C6", "32n", Tone.context.currentTime + (index * 0.001)); // Higher pitch for collective // Fix: Use Tone.context.currentTime
+                            bonusBlinkSynth.triggerAttackRelease("C6", "32n", Tone.context.currentTime + (index * 0.001)); // Higher pitch for collective
                         } else {
                             item.classList.remove('highlight');
                         }
@@ -1577,47 +1576,22 @@
                             let winningFruitElement = slotItems[finalWinningIndex];
                             let winningFruitDataName = winningFruitElement.dataset.fruit;
 
-                            // Store the original winning fruit and its data name before any re-rolling
-                            const originalWinningFruitElement = winningFruitElement;
-                            const originalWinningFruitDataName = winningFruitDataName;
+                            // Determine if it's a BAR and if the 1% chance hits
+                            const isBarHit = fruitsData[winningFruitDataName].category === 'bar';
+                            const triggerBarBonus = isBarHit && (Math.random() <= 0.01); // 1% chance for BAR bonus
 
-                            let shouldTriggerBarBonus = false;
-
-                            // --- BAR Rarity Logic for Normal Spin ---
-                            if (fruitsData[originalWinningFruitDataName].category === 'bar') {
-                                if (Math.random() <= 0.01) { // 1% chance for BAR to be the actual hit
-                                    addHistory("BAR hit! Triggering BAR bonus (1% chance).");
-                                    shouldTriggerBarBonus = true;
-                                } else { // 99% chance to re-roll
-                                    addHistory("BAR hit, re-rolling to non-BAR fruit.");
-                                    const nonBarIndices = slotItems
-                                        .map((item, index) => ({ item, index }))
-                                        .filter(obj => fruitsData[obj.item.dataset.fruit].category !== 'bar')
-                                        .map(obj => obj.index);
-
-                                    if (nonBarIndices.length > 0) {
-                                        finalWinningIndex = nonBarIndices[Math.floor(Math.random() * nonBarIndices.length)];
-                                        winningFruitElement = slotItems[finalWinningIndex];
-                                        winningFruitDataName = winningFruitElement.dataset.fruit;
-                                    } else {
-                                        addHistory("Warning: No non-BAR fruits to re-roll to!");
-                                    }
-                                }
-                            }
-                            // --- End BAR Rarity Logic ---
-
-                            // Keep the final winning element highlighted for a moment before further processing
-                            winningFruitElement.classList.remove('highlight'); // Remove highlight from the spinning one
-                            // Highlight the *actual* determined winning fruit (original BAR or re-rolled non-BAR)
+                            // Remove highlight from the spinning one before processing
+                            winningFruitElement.classList.remove('highlight');
+                            // Highlight the *actual* determined winning fruit
                             slotItems[finalWinningIndex].classList.add('highlight');
 
 
                             setTimeout(async () => {
-                                if (shouldTriggerBarBonus) {
-                                    // Pass the original BAR element and its data name to the bonus handler
-                                    await handleNormalSpinBarBonus(originalWinningFruitElement, originalWinningFruitDataName);
+                                if (triggerBarBonus) {
+                                    addHistory(`BAR hit! Triggering BAR bonus (1% chance).`);
+                                    await handleNormalSpinBarBonus(winningFruitElement, winningFruitDataName);
                                 } else {
-                                    // Pass the potentially re-rolled fruit to the normal processing
+                                    // If not a BAR bonus, process as a normal win (could be a BAR that didn't trigger bonus, or any other fruit)
                                     await processNormalSpinWin(winningFruitDataName, winningFruitElement);
                                 }
                                 resolve();
@@ -1724,7 +1698,7 @@
                                     totalWinAmount += bonus;
                                     addHistory(`🍀 LUCKY HIT → ${fruitsData[randHitDataName].emoji} +KES ${bonus.toFixed(2)}`);
                                 } else {
-                                    addHistory(`🍀 LUCKY MISS → ${fruitsData[randHitDataName].emoji} (Not Staked)`);
+                                    addHistory(`🍀 LUCKY MISS → ${fruitsData[randDataName].emoji} (Not Staked)`);
                                 }
                                 currentLuckyFruitIndex = targetLuckyFruitIndex;
                             }
@@ -1932,3 +1906,4 @@
     </script>
 </body>
 </html>
+�
