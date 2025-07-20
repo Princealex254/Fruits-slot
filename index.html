@@ -820,12 +820,12 @@
             // Define all fruits on the board with their specific properties and category
             const fruitsData = {
                 // Top Row
-                'big-orange-top-left': { emoji: '🍊', multiplier: [10, 20], type: 'range', category: 'orange' },
+                'big-orange-top-left': { emoji: '�', multiplier: [10, 20], type: 'range', category: 'orange' },
                 'big-bell-top': { emoji: '🔔', multiplier: [10, 20], type: 'range', category: 'bell' },
                 'small-bar-x50': { emoji: 'BAR', multiplier: 50, type: 'fixed', category: 'bar' }, // Updated multiplier
                 'big-bar': { emoji: 'BAR', multiplier: 100, type: 'fixed', category: 'bar' }, // Updated multiplier
                 'apple-x5': { emoji: '🍎', multiplier: 5, type: 'fixed', category: 'apple' },
-                'small-apple-x3-top': { emoji: '�', multiplier: 3, type: 'fixed', category: 'apple' },
+                'small-apple-x3-top': { emoji: '🍎', multiplier: 3, type: 'fixed', category: 'apple' },
                 'big-mango-top-right': { emoji: '🥭', multiplier: [10, 20], type: 'range', category: 'mango' },
 
                 // Right Column
@@ -1292,7 +1292,7 @@
 
                 for (let fruitEl of x3Fruits) {
                     const targetIndex = slotItems.indexOf(fruitEl);
-                    const path = generateLongPath(currentLightIndex, targetIndex, slotItems.length, 1.5); // 1.5 full cycles
+                    const path = generateLongPath(currentLightIndex, targetIndex, slotItems.length, 2.5); // Changed from 1.5 to 2.5
 
                     const tempMovingSynth = new Tone.Synth({
                         oscillator: { type: "sine" },
@@ -1349,7 +1349,7 @@
 
                 for (let el of targetElements) {
                     const targetIndex = slotItems.indexOf(el);
-                    const path = generateLongPath(currentLightIndex, targetIndex, slotItems.length, 1.5); // 1.5 full cycles
+                    const path = generateLongPath(currentLightIndex, targetIndex, slotItems.length, 2.5); // Changed from 1.5 to 2.5
 
                     const tempMovingSynth = new Tone.Synth({
                         oscillator: { type: "sine" },
@@ -1407,7 +1407,7 @@
                     const targetIndex = slotItems.indexOf(targetFruitElement);
 
                     // Path from current light position to the next target, 1.5 cycles
-                    const path = generateLongPath(currentLightIndex, targetIndex, slotItems.length, 1.5);
+                    const path = generateLongPath(currentLightIndex, targetIndex, slotItems.length, 2.5); // Changed from 1.5 to 2.5
 
                     const tempMovingSynth = new Tone.Synth({
                         oscillator: { type: "sine" },
@@ -1496,7 +1496,7 @@
 
                 for (let appleEl of allAppleFruits) {
                     const targetLuckyFruitIndex = slotItems.indexOf(appleEl);
-                    const path = generateLongPath(currentLightIndex, targetLuckyFruitIndex, slotItems.length, 1.5); // 1.5 full cycles
+                    const path = generateLongPath(currentLightIndex, targetLuckyFruitIndex, slotItems.length, 2.5); // Changed from 1.5 to 2.5
 
                     const tempMovingSynth = new Tone.Synth({
                         oscillator: { type: "sine" },
@@ -1672,7 +1672,7 @@
                                 }, "16n").start(0);
 
                                 const targetLuckyFruitIndex = slotItems.indexOf(luckyFruitElement);
-                                const path = generateLongPath(currentLuckyFruitIndex, targetLuckyFruitIndex, slotItems.length, 1.5); // 1.5 full cycles
+                                const path = generateLongPath(currentLuckyFruitIndex, targetLuckyFruitIndex, slotItems.length, 2.5); // Changed from 1.5 to 2.5
 
                                 for (let k = 0; k < path.length; k++) {
                                     const index = path[k];
@@ -1698,7 +1698,7 @@
                                     totalWinAmount += bonus;
                                     addHistory(`🍀 LUCKY HIT → ${fruitsData[randHitDataName].emoji} +KES ${bonus.toFixed(2)}`);
                                 } else {
-                                    addHistory(`🍀 LUCKY MISS → ${fruitsData[randDataName].emoji} (Not Staked)`);
+                                    addHistory(`🍀 LUCKY MISS → ${fruitsData[randHitDataName].emoji} (Not Staked)`);
                                 }
                                 currentLuckyFruitIndex = targetLuckyFruitIndex;
                             }
@@ -1809,7 +1809,7 @@
                     if (!targetFruitElement) continue;
 
                     const targetIndex = slotItems.indexOf(targetFruitElement);
-                    const path = generateLongPath(currentLightIndex, targetIndex, slotItems.length, 1.5); // 1.5 full cycles
+                    const path = generateLongPath(currentLightIndex, targetIndex, slotItems.length, 2.5); // Changed from 1.5 to 2.5
 
                     const tempMovingSynth = new Tone.Synth({
                         oscillator: { type: "sine" },
