@@ -10,7 +10,8 @@
   <meta name="theme-color" content="#2a0247">
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 
@@ -24,25 +25,152 @@
       --max-width:600px;
       --safe-tap:44px;
     }
-
+    .dark-theme {
+      --bg-1: #120012;
+      --bg-2: #2a0247;
+      --text-color: #fff;
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --border-color: rgba(255, 255, 255, 0.1);
+    }
+    .light-theme {
+      --bg-1: #f3e5f5;
+      --bg-2: #e0f2f1;
+      --text-color: #333;
+      --card-bg: rgba(0, 0, 0, 0.05);
+      --border-color: rgba(0, 0, 0, 0.1);
+    }
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0;font-family:Inter, system-ui, sans-serif}
+    html,body{height:100%;margin:0;font-family:Inter, system-ui, sans-serif;overflow:hidden;}
     body{
       background:linear-gradient(180deg,var(--bg-1),var(--bg-2));
-      color:#fff;display:flex;align-items:center;justify-content:center;padding:18px;
+      color:var(--text-color, #fff);display:flex;align-items:center;justify-content:center;padding:18px;
     }
-
-    .app-frame{width:100%;max-width:var(--max-width);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.6);overflow:hidden;background:rgba(0,0,0,0.2)}
+    .app-frame{width:100%;max-width:var(--max-width);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.6);overflow:hidden;background:rgba(0,0,0,0.2);position:relative;z-index:10;}
+    
+    /* Hamburger Menu & Sidebar */
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.3s ease, visibility 0s 0.3s;
+        z-index: 100;
+    }
+    .sidebar-overlay.active {
+        visibility: visible;
+        opacity: 1;
+        transition: opacity 0.3s ease;
+    }
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 250px;
+        background: linear-gradient(180deg, var(--bg-1), #1d0133);
+        box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-in-out;
+        z-index: 101;
+        padding: 24px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        overflow-y: auto;
+    }
+    .sidebar.active {
+        transform: translateX(0);
+    }
+    .sidebar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+    .sidebar-header .title {
+        font-weight: 800;
+        font-size: 1.2rem;
+        color: var(--accent-1);
+    }
+    .sidebar-header .close-btn {
+        background: none;
+        border: none;
+        color: #fff;
+        font-size: 1.5rem;
+        cursor: pointer;
+    }
+    .sidebar-section {
+        background: var(--card-bg, rgba(255,255,255,0.05));
+        padding: 12px;
+        border-radius: 12px;
+    }
+    .sidebar-section h3 {
+        margin: 0 0 12px;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--muted);
+    }
+    .sidebar-section ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .sidebar-section a {
+        display: block;
+        padding: 8px 0;
+        color: var(--text-color, #fff);
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.2s;
+    }
+    .sidebar-section a:hover {
+        color: var(--accent-1);
+    }
+    .sidebar-notices {
+        font-size: 0.7rem;
+        color: var(--muted);
+        text-align: center;
+        margin-top: auto;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color, rgba(255,255,255,0.1));
+    }
+    /* Main App Header */
     header.app-header{display:flex;align-items:center;justify-content:space-between;padding:12px}
-    .logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent-1),#ff9a49);display:flex;align-items:center;justify-content:center;font-weight:800;color:#222}
+    .hamburger-menu {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        width: 30px;
+        height: 25px;
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: 0;
+    }
+    .hamburger-menu .bar {
+        width: 100%;
+        height: 3px;
+        background-color: var(--text-color, #fff);
+        border-radius: 5px;
+        transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    }
+    .logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent-1),#ff9a49);display:flex;align-items:center;justify-content:center;font-weight:800;color:#222;margin-left: 10px;}
     .title{font-weight:700;font-size:1rem}
-    .balance-pill{padding:6px 12px;border-radius:999px;background:rgba(255,255,255,0.05);display:flex;gap:6px;align-items:center}
+    .balance-pill{padding:6px 12px;border-radius:999px;background:var(--card-bg, rgba(255,255,255,0.05));display:flex;gap:6px;align-items:center}
     .balance-pill .amount{font-weight:800;color:var(--accent-1)}
     .game-shell{padding:12px}
 
-    .board{display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(7,1fr);gap:4px;max-width:100%;margin:auto;aspect-ratio:1;border:3px solid rgba(255,255,255,0.05);border-radius:12px;position:relative;}
-    .slot-item{display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.05);border-radius:8px;font-weight:700;transition:transform .2s;color:transparent;transition:background-color 0.1s;}
-    .slot-item span { color: #fff; text-shadow: 0 0 5px rgba(0,0,0,0.5); }
+    .board{display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(7,1fr);gap:4px;max-width:100%;margin:auto;aspect-ratio:1;border:3px solid var(--border-color, rgba(255,255,255,0.05));border-radius:12px;position:relative;}
+    .slot-item{display:flex;align-items:center;justify-content:center;background:var(--card-bg, rgba(255,255,255,0.05));border-radius:8px;font-weight:700;transition:transform .2s;color:transparent;transition:background-color 0.1s;}
+    .slot-item span { color: var(--text-color, #fff); text-shadow: 0 0 5px rgba(0,0,0,0.5); }
     .slot-item .small-text{font-size:0.6rem;color:var(--accent-1);margin-left:2px}
     
     .slot-item[data-fruit="big-orange-top-left"] { grid-column: 1; grid-row: 1; }
@@ -86,9 +214,9 @@
     .glowing-label{font-size:0.8rem;text-transform:uppercase;letter-spacing:2px;animation:glow-pulse 1s infinite alternate}
     .winning-display{font-size:3rem;text-shadow:0 0 10px var(--accent-1)}
 
-    .controls{padding:12px;background:rgba(255,255,255,0.05);border-radius:16px;margin-top:12px;display:flex;flex-direction:column;gap:12px}
+    .controls{padding:12px;background:var(--card-bg, rgba(255,255,255,0.05));border-radius:16px;margin-top:12px;display:flex;flex-direction:column;gap:12px}
     .status-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .stake-card{flex:1;background:rgba(255,255,255,0.05);border-radius:12px;padding:8px 12px;font-size:0.8rem}
+    .stake-card{flex:1;background:var(--card-bg, rgba(255,255,255,0.05));border-radius:12px;padding:8px 12px;font-size:0.8rem}
     .stake-card .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
     .stake-card .value{font-weight:700;color:var(--accent-1)}
     .go-button{width:100px;height:100px;border-radius:50%;background:linear-gradient(45deg,#ff6b6b,#f83d3d);color:#fff;font-size:1.5rem;font-weight:800;border:none;box-shadow:0 5px 15px rgba(255,107,107,0.4);transition:transform .2s,box-shadow .2s;cursor:pointer}
@@ -96,11 +224,23 @@
     .go-button:active{transform:scale(0.95);box-shadow:none}
     .go-button:disabled{background:#555;cursor:not-allowed;box-shadow:none;transform:none}
     .bottom-controls{display:flex;justify-content:space-between;align-items:center;gap:8px}
-    .btn-pill{padding:8px 16px;background:rgba(255,255,255,0.1);border-radius:999px;border:none;color:#fff;font-weight:600;font-size:0.8rem;cursor:pointer;flex-grow:1}
+    .btn-pill{padding:8px 16px;background:var(--border-color, rgba(255,255,255,0.1));border-radius:999px;border:none;color:var(--text-color, #fff);font-weight:600;font-size:0.8rem;cursor:pointer;flex-grow:1}
     .fruit-selection{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-    .fruit-button{background:rgba(255,255,255,0.1);border:1px solid transparent;border-radius:12px;color:#fff;padding:8px;font-size:1rem;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:50px;min-height:50px}
+    .fruit-button{background:var(--border-color, rgba(255,255,255,0.1));border:1px solid transparent;border-radius:12px;color:var(--text-color, #fff);padding:8px;font-size:1rem;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:50px;min-height:50px}
     .fruit-button .count{font-size:0.7rem;font-weight:400;color:var(--muted)}
-    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:10px 20px;border-radius:10px;opacity:0;transition:opacity .5s ease-in-out;z-index:100}
+    .toast{
+      position:fixed;
+      top:50%;
+      left:50%;
+      transform:translate(-50%, -50%);
+      background:rgba(0,0,0,0.8);
+      color:#fff;
+      padding:10px 20px;
+      border-radius:10px;
+      opacity:0;
+      transition:opacity .5s ease-in-out;
+      z-index:100;
+    }
     .toast.show{opacity:1}
 
     @keyframes spin{to{transform:rotate(360deg)}}
@@ -111,7 +251,6 @@
       0%,100%{transform:scale(1);box-shadow:0 0 5px #000}
       50%{transform:scale(1.2);box-shadow:0 0 20px var(--accent-1)}
     }
-    .slot-item.blinking{animation:blinking 0.8s infinite alternate}
     .board.blinking{animation:blinking 0.8s infinite alternate}
     @keyframes blinking{from{background-color:var(--accent-1)}to{background-color:rgba(255,255,255,0.05)}}
     .slot-item.bonus-flash {animation: bonus-flash 0.5s infinite alternate;}
@@ -124,13 +263,225 @@
         box-shadow: 0 0 15px var(--accent-1);
         transform: scale(1.1);
     }
+    @keyframes bonus-blink {
+      0% { box-shadow: 0 0 5px var(--accent-1); }
+      50% { box-shadow: 0 0 25px var(--accent-1); }
+      100% { box-shadow: 0 0 5px var(--accent-1); }
+    }
+    .slot-item.bonus-blink-hit {
+        background-color: var(--accent-1);
+        animation: bonus-blink 0.5s infinite alternate;
+    }
+    
+    /* Modal Styles */
+    .modal {
+      position: fixed;
+      z-index: 200;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background: linear-gradient(180deg, var(--bg-1), #1d0133);
+      padding: 24px;
+      border-radius: 20px;
+      max-width: 90%;
+      width: 400px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    .modal-content h2 {
+      margin-top: 0;
+      color: var(--accent-1);
+      text-align: center;
+    }
+    .modal-close {
+      color: #fff;
+      position: absolute;
+      top: 15px;
+      right: 25px;
+      font-size: 30px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+    .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color, rgba(255,255,255,0.1));
+      background: var(--card-bg, rgba(255,255,255,0.05));
+      color: var(--text-color, #fff);
+    }
+    .modal-button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      background-color: var(--accent-2);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    .profile-info p {
+      margin: 8px 0;
+      color: var(--muted);
+    }
+    .profile-info p span {
+      font-weight: 600;
+      color: var(--accent-1);
+    }
+    .settings-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.1));
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 24px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 24px;
+    }
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .toggle-slider {
+      background-color: #2196F3;
+    }
+    input:checked + .toggle-slider:before {
+      transform: translateX(16px);
+    }
+    #transactions-list, #leaderboard-list {
+      list-style-type: none;
+      padding: 0;
+    }
+    #transactions-list li, #leaderboard-list li {
+      background: var(--card-bg, rgba(255,255,255,0.05));
+      padding: 10px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--text-color, #fff);
+    }
+    #leaderboard-list .you {
+        background-color: var(--accent-1);
+        color: #000;
+        font-weight: bold;
+    }
+    #leaderboard-list li .score {
+        float: right;
+        font-weight: 700;
+        color: var(--accent-2);
+    }
+    #leaderboard-list .you .score {
+        color: #000;
+    }
+    .chat-placeholder {
+      text-align: center;
+      padding: 20px;
+      color: var(--muted);
+      font-style: italic;
+    }
+    .transaction-type {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: bold;
+    }
+    .transaction-type .fa-gem, .transaction-type .fa-arrow-up, .transaction-type .fa-arrow-down {
+      color: var(--accent-1);
+    }
+    .transaction-type .fa-arrow-down {
+      color: var(--accent-2);
+    }
     
   </style>
 </head>
-<body>
+<body class="dark-theme">
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+  <nav class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+          <div class="title">Account</div>
+          <button class="close-btn" id="close-sidebar">&times;</button>
+      </div>
+      <div class="sidebar-section">
+          <h3>Profile</h3>
+          <ul>
+              <li><a href="#" id="view-profile-link">View Profile</a></li>
+              <li><a href="#" id="edit-profile-link">Edit Profile</a></li>
+              <li><a href="#" id="settings-link">Settings</a></li>
+          </ul>
+      </div>
+      <div class="sidebar-section">
+          <h3>Banking</h3>
+          <ul>
+              <li><a href="#" id="deposit-link">Deposit</a></li>
+              <li><a href="#" id="withdraw-link">Withdraw</a></li>
+              <li><a href="#" id="history-link">Transaction History</a></li>
+          </ul>
+      </div>
+      <div class="sidebar-section">
+          <h3>Community</h3>
+          <ul>
+              <li><a href="#" id="leaderboard-link">Leaderboard</a></li>
+              <li><a href="#" id="chat-link">Chat</a></li>
+              <li><a href="#" id="support-link">Support</a></li>
+          </ul>
+      </div>
+      <div class="sidebar-notices">
+          © 2025 Fruit Slots. All rights reserved.<br>
+          <a href="#" style="font-size: 0.7rem; color: #fff;">Privacy Policy</a> | <a href="#" style="font-size: 0.7rem; color: #fff;">Terms of Service</a>
+      </div>
+  </nav>
+
   <div class="app-frame">
     <header class="app-header">
-      <div class="logo">SL</div>
+      <button class="hamburger-menu" id="open-sidebar">
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+      </button>
       <div class="title">FRUIT SLOTS</div>
       <div class="balance-pill"><span class="amount" id="balance">0.00</span></div>
     </header>
@@ -191,6 +542,125 @@
     <div class="toast" id="toast">Hello</div>
   </div>
 
+  <div id="profile-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" data-modal="profile-modal">&times;</span>
+      <h2>Your Profile</h2>
+      <div id="profile-info" class="profile-info"></div>
+    </div>
+  </div>
+
+  <div id="edit-profile-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" data-modal="edit-profile-modal">&times;</span>
+      <h2>Edit Profile</h2>
+      <div class="form-group">
+        <label for="username-input">Username</label>
+        <input type="text" id="username-input" placeholder="Enter username">
+      </div>
+      <div class="form-group">
+        <label for="avatar-input">Avatar (URL)</label>
+        <input type="text" id="avatar-input" placeholder="Paste image URL">
+      </div>
+      <button class="modal-button" id="save-profile-btn">Save Profile</button>
+    </div>
+  </div>
+
+  <div id="settings-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" data-modal="settings-modal">&times;</span>
+      <h2>Settings</h2>
+      <div class="settings-item">
+        <span>Sound Effects</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="sound-toggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="settings-item">
+        <span>Theme</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="theme-toggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="settings-item">
+        <span>Spin Speed</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="speed-toggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+  
+  <div id="deposit-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" data-modal="deposit-modal">&times;</span>
+      <h2>Deposit</h2>
+      <div class="form-group">
+        <label for="deposit-amount">Amount</label>
+        <input type="number" id="deposit-amount" placeholder="Enter amount">
+      </div>
+      <button class="modal-button" id="deposit-btn">Deposit</button>
+    </div>
+  </div>
+
+  <div id="withdraw-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" data-modal="withdraw-modal">&times;</span>
+      <h2>Withdraw</h2>
+      <div class="form-group">
+        <label for="withdraw-amount">Amount</label>
+        <input type="number" id="withdraw-amount" placeholder="Enter amount">
+      </div>
+      <button class="modal-button" id="withdraw-btn">Withdraw</button>
+    </div>
+  </div>
+
+  <div id="history-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" data-modal="history-modal">&times;</span>
+      <h2>Transaction History</h2>
+      <ul id="transactions-list"></ul>
+    </div>
+  </div>
+
+  <div id="leaderboard-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" data-modal="leaderboard-modal">&times;</span>
+      <h2>Leaderboard</h2>
+      <ul id="leaderboard-list"></ul>
+    </div>
+  </div>
+
+  <div id="chat-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" data-modal="chat-modal">&times;</span>
+      <h2>Community Chat</h2>
+      <div class="chat-placeholder">
+        Chat functionality coming soon!
+      </div>
+    </div>
+  </div>
+
+  <div id="support-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" data-modal="support-modal">&times;</span>
+      <h2>Support</h2>
+      <div class="form-group">
+        <label for="support-email">Your Email</label>
+        <input type="email" id="support-email" placeholder="email@example.com">
+      </div>
+      <div class="form-group">
+        <label for="support-message">Message</label>
+        <textarea id="support-message" rows="4" placeholder="Your message here..."></textarea>
+      </div>
+      <button class="modal-button" id="send-support-btn">Send</button>
+    </div>
+  </div>
+
+
   <script>
     const balanceEl = document.getElementById('balance');
     const availableEl = document.getElementById('available');
@@ -201,21 +671,132 @@
     const toast = document.getElementById('toast');
     const winningEl = document.getElementById('winning');
     const boardEl = document.getElementById('board');
+    const openSidebarBtn = document.getElementById('open-sidebar');
+    const closeSidebarBtn = document.getElementById('close-sidebar');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+    // Helper function for cryptographically secure random number generation
+    function secureRandomInt(max) {
+      const array = new Uint32Array(1);
+      crypto.getRandomValues(array);
+      return array[0] % max;
+    }
+    
+    // Helper function for a cryptographically secure random float between 0 (inclusive) and 1 (exclusive)
+    function secureRandomFloat() {
+      const array = new Uint32Array(1);
+      crypto.getRandomValues(array);
+      // We divide by the maximum possible value of a Uint32 to get a float between 0 and 1
+      return array[0] / 0x100000000;
+    }
+    
+    // Sidebar & Modal logic
+    openSidebarBtn.addEventListener('click', () => {
+        sidebar.classList.add('active');
+        sidebarOverlay.classList.add('active');
+    });
+
+    closeSidebarBtn.addEventListener('click', () => {
+        sidebar.classList.remove('active');
+        sidebarOverlay.classList.remove('active');
+    });
+
+    sidebarOverlay.addEventListener('click', () => {
+        sidebar.classList.remove('active');
+        sidebarOverlay.classList.remove('active');
+    });
+    
+    document.querySelectorAll('.modal-close').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const modalId = btn.getAttribute('data-modal');
+        document.getElementById(modalId).style.display = 'none';
+      });
+    });
+
+    window.addEventListener('click', (event) => {
+      if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+      }
+    });
+
+    // Persistent data & Game stats
+    function generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = secureRandomInt(16) | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
 
     let accountBalance = parseFloat(localStorage.getItem('pa_balance') || 10000);
+    let totalSpins = parseInt(localStorage.getItem('pa_totalSpins') || 0);
+    let totalWins = parseFloat(localStorage.getItem('pa_totalWins') || 0);
+    let transactionHistory = JSON.parse(localStorage.getItem('pa_history') || '[]');
+    let userProfile = JSON.parse(localStorage.getItem('pa_profile') || JSON.stringify({
+      username: 'Player_' + secureRandomInt(10000),
+      avatar: 'https://www.gravatar.com/avatar/?d=retro',
+      playerId: generateUUID(),
+      joinDate: new Date().toLocaleDateString(),
+      email: 'user' + secureRandomInt(1000) + '@example.com'
+    }));
+    let gameSettings = JSON.parse(localStorage.getItem('pa_settings') || JSON.stringify({
+      soundOn: true,
+      darkMode: true,
+      fastSpin: false
+    }));
+
     let currentBetAmount = 10;
     let MAX_MULT = 5;
     let selectedFruits = {};
     let currentStake = 0;
 
     function format(n) {
-      return Number(n).toFixed(2);
+      return `KSh ${Number(n).toFixed(2)}`;
     }
-
+    
     function setBalance(v) {
+      accountBalance = v;
       balanceEl.textContent = format(v);
       availableEl.textContent = format(v);
       localStorage.setItem('pa_balance', v);
+    }
+
+    function saveStats(spins, wins) {
+      totalSpins = spins;
+      totalWins = wins;
+      localStorage.setItem('pa_totalSpins', totalSpins);
+      localStorage.setItem('pa_totalWins', totalWins);
+    }
+
+    function addTransaction(type, amount, details = {}) {
+      const transaction = {
+        type: type,
+        amount: amount,
+        date: new Date().toLocaleString(),
+        details: details
+      };
+      transactionHistory.unshift(transaction);
+      if (transactionHistory.length > 10) {
+        transactionHistory.pop();
+      }
+      localStorage.setItem('pa_history', JSON.stringify(transactionHistory));
+    }
+
+    function generateLeaderboard() {
+      const leaderboard = [];
+      const userScore = secureRandomInt(totalWins * 100) + 1;
+      const you = { name: userProfile.username, score: userScore, isYou: true };
+      
+      for (let i = 0; i < 15; i++) {
+        const name = `Player${secureRandomInt(900) + 100}`;
+        const score = secureRandomInt(50000) + 10000;
+        leaderboard.push({ name: name, score: score });
+      }
+
+      leaderboard.sort((a, b) => b.score - a.score);
+      const userRank = secureRandomInt(10);
+      leaderboard.splice(userRank, 0, you);
+      return leaderboard.slice(0, 10);
     }
 
     setBalance(accountBalance);
@@ -328,8 +909,12 @@
       document.querySelector('[data-fruit="small-bell-x3-left"]')
     ];
     
+    const luckyTabs = slotItems.filter(item => item.dataset.fruit.includes('lucky-tab'));
+    const x3Multipliers = slotItems.filter(item => item.dataset.fruit.includes('x3'));
+    
     const synth = new Tone.Synth().toDestination();
     async function play(note) {
+      if (!gameSettings.soundOn) return;
       await Tone.start();
       synth.triggerAttackRelease(note, '8n');
     }
@@ -338,7 +923,7 @@
 
     async function spinTicker(stopIndex, cycles = 2) {
       const totalSteps = cycles * slotItems.length + ((stopIndex - lastStopIndex + slotItems.length) % slotItems.length);
-      let delay = 35;
+      let delay = gameSettings.fastSpin ? 5 : 35;
       const easingSteps = 20;
 
       for (let i = 0; i <= totalSteps; i++) {
@@ -361,58 +946,12 @@
       play('E4');
       return chosen;
     }
-    
-    async function bonusTicker(stopIndex, cycles = 1) {
-      const totalSteps = cycles * slotItems.length + ((stopIndex - lastStopIndex + slotItems.length) % slotItems.length);
-      const delay = 5;
 
-      for (let i = 0; i <= totalSteps; i++) {
-        slotItems.forEach(si => si.classList.remove('highlight', 'win-bounce'));
-        const idx = (lastStopIndex + i) % slotItems.length;
-        slotItems[idx].classList.add('highlight');
-        if (i % 2 === 0) play('C4');
-        await new Promise(r => setTimeout(r, delay));
-      }
-      lastStopIndex = stopIndex;
-      const chosen = slotItems[stopIndex];
-      chosen.classList.add('blinking');
-      play('E4');
-      return chosen;
-    }
-
-    async function fullBoardBonusTicker(stopIndex, cycles = 2.5) {
-        const totalSteps = Math.floor(cycles * slotItems.length);
-        let delay = 5;
-
-        for (let i = 0; i <= totalSteps; i++) {
-            slotItems.forEach(si => si.classList.remove('highlight'));
-            const idx = (lastStopIndex + i) % slotItems.length;
-            slotItems[idx].classList.add('highlight');
-
-            play('C4');
-            await new Promise(r => setTimeout(r, delay));
-        }
-
-        lastStopIndex = stopIndex;
-        const chosen = slotItems[stopIndex];
-        return chosen;
-    }
-    
-    function shuffle(array) {
-      let currentIndex = array.length, randomIndex;
-      while (currentIndex !== 0) {
-        randomIndex = Math.floor(Math.random() * currentIndex);
-        currentIndex--;
-        [array[currentIndex], array[randomIndex]] = [array[currentIndex], array[randomIndex]];
-      }
-      return array;
-    }
-    
-    function calculatePayout(fruitElement, selectedFruits, currentBetAmount) {
+    function calculatePayout(fruitElement, selectedFruits, currentBetAmount, globalMultiplier = 1) {
       let totalWin = 0;
       let multiplier = 0;
       const dataFruit = fruitElement.dataset.fruit;
-      const rand = Math.random();
+      const rand = secureRandomFloat();
 
       if (dataFruit.includes('bar-x50')) {
           multiplier = 50;
@@ -422,223 +961,32 @@
           multiplier = 3;
       } else if (dataFruit.includes('big-orange') || dataFruit.includes('big-mango') || dataFruit.includes('big-bell')) {
           if (rand < 0.05) {
-              multiplier = Math.random() < 0.5 ? 15 : 20;
+              multiplier = secureRandomFloat() < 0.5 ? 15 : 20;
           } else {
               multiplier = 10;
           }
       } else if (dataFruit.includes('big-watermelon') || dataFruit.includes('big-double-star') || dataFruit.includes('big-77')) {
           if (rand < 0.05) {
-              multiplier = Math.random() < 0.5 ? 30 : 40;
+              multiplier = secureRandomFloat() < 0.5 ? 30 : 40;
           } else {
               multiplier = 20;
           }
       } else if (dataFruit.includes('lucky-tab')) {
-          multiplier = 0; // Lucky Tab has no direct payout, only triggers bonus
+          multiplier = 0;
       } else if (dataFruit.includes('apple') || dataFruit.includes('big-bar')) {
-          multiplier = 0; // These fruits only pay in specific bonuses
+          multiplier = 0;
       }
-
 
       const fruitText = fruitElement.textContent.trim();
       const fruitKey = categories.find(c => fruitText.includes(c.emoji.trim()))?.key;
 
       if (selectedFruits[fruitKey]) {
-          totalWin = selectedFruits[fruitKey] * currentBetAmount * multiplier;
+          totalWin = selectedFruits[fruitKey] * currentBetAmount * multiplier * globalMultiplier;
       }
       
       return totalWin;
     }
     
-    async function handleX3BonusSequence() {
-      showToast("X3 BONUS ACTIVATED!");
-      let totalWin = 0;
-      // Get all fruits with "x3" in their text content
-      const x3Fruits = slotItems.filter(item => item.textContent.includes('x3'));
-      const shuffledFruits = shuffle(x3Fruits);
-
-      // Loop through each x3 fruit
-      for (const fruit of shuffledFruits) {
-        const index = slotItems.indexOf(fruit);
-        // Spin the ticker 2.5 times and stop on the current fruit
-        await fullBoardBonusTicker(index, 2.5);
-        
-        // Keep the fruit glowing after it is hit
-        fruit.classList.add('bonus-hit-glow');
-        
-        const win = calculatePayout(fruit, selectedFruits, currentBetAmount);
-        totalWin += win;
-        winEl.textContent = format(totalWin);
-        accountBalance += win;
-        setBalance(accountBalance);
-      }
-      winningEl.textContent = totalWin > 0 ? Math.round(totalWin) : '00';
-    }
-
-    async function handleBigFruitsBonusSequence() {
-      showToast("Big Fruits Bonus!");
-      let totalWin = 0;
-      const bigFruits = slotItems.filter(item => {
-        const text = item.textContent.trim();
-        return (text.includes('🍊') || text.includes('🥭') || text.includes('🔔')) && !text.includes('x3');
-      });
-      const shuffledFruits = shuffle(bigFruits);
-
-      for (const fruit of shuffledFruits) {
-        const index = slotItems.indexOf(fruit);
-        await fullBoardBonusTicker(index, 2.5); // Use the FullBoard ticker logic
-        fruit.classList.add('bonus-hit-glow'); // Keep the fruit lit
-        const win = calculatePayout(fruit, selectedFruits, currentBetAmount);
-        totalWin += win;
-        winEl.textContent = format(totalWin);
-        accountBalance += win;
-        setBalance(accountBalance);
-      }
-      winningEl.textContent = totalWin > 0 ? Math.round(totalWin) : '00';
-    }
-    
-    async function handleFullBoardBonus() {
-        showToast("FULL BOARD BONUS!");
-        boardEl.classList.add('blinking');
-        await new Promise(r => setTimeout(r, 1500));
-        boardEl.classList.remove('blinking');
-
-        let totalWin = 0;
-        const shuffledItems = shuffle([...slotItems]);
-
-        for (const fruit of shuffledItems) {
-            const index = slotItems.indexOf(fruit);
-            await fullBoardBonusTicker(index, 2.5); // Spin 2.5 times and stop on the fruit.
-            
-            // Add a persistent glow to the fruit after being hit
-            fruit.classList.add('bonus-hit-glow');
-            play('C4');
-
-            const win = calculatePayout(fruit, selectedFruits, currentBetAmount);
-            totalWin += win;
-            if (win > 0) {
-                accountBalance += win;
-                setBalance(accountBalance);
-            }
-            winEl.textContent = format(totalWin);
-        }
-
-        // Final board celebration
-        boardEl.classList.add('blinking');
-        await new Promise(r => setTimeout(r, 2000));
-        boardEl.classList.remove('blinking');
-        
-        if (totalWin > 0) {
-          confetti({ particleCount: 150, spread: 120, origin: { y: 0.5 } });
-          play('C6');
-          showToast(`You won ${totalWin.toFixed(2)}`);
-        }
-        
-        winningEl.textContent = totalWin > 0 ? Math.round(totalWin) : '00';
-    }
-
-    async function handleAllApplesBonusSequence() {
-        showToast("All Apples Bonus!");
-        let totalWin = 0;
-        const allApples = slotItems.filter(item => {
-            const text = item.textContent.trim();
-            return text.includes('🍎') && !text.includes('x3');
-        });
-        const shuffledFruits = shuffle(allApples);
-
-        for (const apple of shuffledFruits) {
-            const index = slotItems.indexOf(apple);
-            await fullBoardBonusTicker(index, 2.5);
-            apple.classList.add('bonus-hit-glow');
-            const win = calculatePayout(apple, selectedFruits, currentBetAmount);
-            totalWin += win;
-            winEl.textContent = format(totalWin);
-            accountBalance += win;
-            setBalance(accountBalance);
-        }
-        winningEl.textContent = totalWin > 0 ? Math.round(totalWin) : '00';
-    }
-
-    async function handleBarBonus() {
-      showToast("BAR BONUS!");
-      play(['C2', 'G2']); // Play a low, metallic sound for the BAR bonus intro.
-
-      const barFruits = slotItems.filter(item => item.textContent.includes('BAR'));
-      barFruits.forEach(item => item.classList.add('bonus-flash'));
-      await new Promise(r => setTimeout(r, 5000));
-      barFruits.forEach(item => {
-        item.classList.remove('bonus-flash');
-        item.classList.add('bonus-hit-glow');
-      });
-
-      const nonBarFruits = slotItems.filter(item => !item.textContent.includes('BAR'));
-      const shuffledFruits = shuffle(nonBarFruits);
-      const numHits = Math.floor(Math.random() * 3) + 2;
-      const luckyHits = shuffledFruits.slice(0, numHits);
-
-      let totalWin = 0;
-
-      for (const fruit of luckyHits) {
-        const index = slotItems.indexOf(fruit);
-        await bonusTicker(index, 1);
-        fruit.classList.add('bonus-hit-glow'); // Keep the hit fruit glowing
-        play('C4');
-
-        const win = calculatePayout(fruit, selectedFruits, currentBetAmount);
-        totalWin += win;
-        winEl.textContent = format(totalWin);
-        accountBalance += win;
-        setBalance(accountBalance);
-      }
-      
-      if (totalWin > 0) {
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.35 }
-        });
-        play('C6');
-        showToast(`You won ${totalWin.toFixed(2)}`);
-      }
-      
-      winningEl.textContent = totalWin > 0 ? Math.round(totalWin) : '00';
-    }
-    
-    async function handleLuckyTabBonus() {
-      showToast("LUCKY BONUS!");
-      const luckyTabs = slotItems.filter(item => item.textContent.includes('LUCKY'));
-      luckyTabs.forEach(item => item.classList.add('bonus-flash'));
-      play(['C5', 'G5']); // Play a high, pleasant sound
-      await new Promise(r => setTimeout(r, 2000));
-      luckyTabs.forEach(item => {
-        item.classList.remove('bonus-flash');
-        item.classList.add('bonus-hit-glow');
-      });
-      
-      const nonLuckyFruits = slotItems.filter(item => !item.textContent.includes('LUCKY'));
-      const shuffledFruits = shuffle(nonLuckyFruits);
-      const numHits = Math.floor(Math.random() * 2) + 2; // 2 or 3 hits
-      const luckyHits = shuffledFruits.slice(0, numHits);
-      let totalWin = 0;
-
-      for (const fruit of luckyHits) {
-        const index = slotItems.indexOf(fruit);
-        await bonusTicker(index, Math.floor(Math.random() * 2) + 1); // 1-2 quick cycles
-        fruit.classList.add('bonus-hit-glow');
-        const win = calculatePayout(fruit, selectedFruits, currentBetAmount);
-        totalWin += win;
-        winEl.textContent = format(totalWin);
-        accountBalance += win;
-        setBalance(accountBalance);
-      }
-
-      if (totalWin > 0) {
-        confetti({ particleCount: 150, spread: 120, origin: { y: 0.5 } });
-        play('C6');
-        showToast(`You won ${totalWin.toFixed(2)}`);
-      }
-      winningEl.textContent = totalWin > 0 ? Math.round(totalWin) : '00';
-    }
-
     async function handleNormalRound(chosen) {
       const totalWin = calculatePayout(chosen, selectedFruits, currentBetAmount);
       
@@ -649,32 +997,58 @@
           origin: { y: 0.35 }
         });
         play('C6');
-        showToast(`You won ${totalWin.toFixed(2)}`);
+        showToast(`You won KSh ${totalWin.toFixed(2)}`);
+        addTransaction('Win', totalWin, { ticketId: currentTicketId });
+        totalWins += totalWin;
       }
 
-      accountBalance += totalWin;
-      setBalance(accountBalance);
+      setBalance(accountBalance + totalWin);
       winEl.textContent = format(totalWin);
       winningEl.textContent = totalWin > 0 ? Math.round(totalWin) : '00';
+      saveStats(totalSpins + 1, totalWins);
     }
-
-    async function handleBonusRound() {
-      slotItems.forEach(si => si.classList.remove('bonus-hit-glow', 'highlight', 'win-bounce', 'blinking'));
+    
+    async function showBonusVisuals(elements, type) {
       boardEl.classList.add('blinking');
-      showToast("BONUS ROUND!");
-      await new Promise(r => setTimeout(r, 2000));
+      elements.forEach(el => el.classList.add('bonus-hit-glow'));
+      showToast(`${type} BONUS!`);
+      play('F6');
+      await new Promise(resolve => setTimeout(resolve, 2000));
       boardEl.classList.remove('blinking');
-
-      const bonusTypes = [
-        handleFullBoardBonus,
-        handleX3BonusSequence,
-        handleBigFruitsBonusSequence,
-        handleAllApplesBonusSequence,
-        handleBarBonus
-      ];
-      const randomBonus = bonusTypes[Math.floor(Math.random() * bonusTypes.length)];
-      await randomBonus();
+      elements.forEach(el => el.classList.remove('bonus-hit-glow'));
     }
+
+    async function handleFullBoardBonus(ticketId) {
+      const bonusWin = currentStake * 50; // Increased payout for full board
+      await showBonusVisuals(slotItems, "FULL BOARD");
+      addTransaction('Bonus: Full Board', bonusWin, { ticketId: ticketId });
+      setBalance(accountBalance + bonusWin);
+      winningEl.textContent = bonusWin;
+      confetti({ particleCount: 150, spread: 120, origin: { y: 0.5 } });
+      play('C6');
+    }
+    
+    async function handleX3MultiplierBonus(ticketId) {
+      const bonusWin = currentStake * 10; // Increased payout for x3
+      await showBonusVisuals(x3Multipliers, "x3 Multiplier");
+      addTransaction('Bonus: x3 Multiplier', bonusWin, { ticketId: ticketId });
+      setBalance(accountBalance + bonusWin);
+      winningEl.textContent = bonusWin;
+      confetti({ particleCount: 100, spread: 90, origin: { y: 0.5 } });
+      play('C6');
+    }
+    
+    async function handleLuckyTabBonus(ticketId) {
+        const bonusWin = currentStake * 15; // Increased payout for lucky tab
+        await showBonusVisuals(luckyTabs, "LUCKY TAB");
+        addTransaction('Bonus: Lucky Tab', bonusWin, { ticketId: ticketId });
+        setBalance(accountBalance + bonusWin);
+        winningEl.textContent = bonusWin;
+        confetti({ particleCount: 150, spread: 120, origin: { y: 0.5 } });
+        play('C6');
+    }
+    
+    let currentTicketId = '';
 
     async function spin() {
       if (currentStake === 0) {
@@ -686,27 +1060,35 @@
         return;
       }
       
-      accountBalance -= currentStake;
-      setBalance(accountBalance);
+      currentTicketId = generateUUID();
+      addTransaction('Bet', -currentStake, { ticketId: currentTicketId });
+      setBalance(accountBalance - currentStake);
+      
       goBtn.disabled = true;
       goBtn.classList.add('spinning');
       winEl.textContent = '0.00';
       winningEl.textContent = '00';
-      slotItems.forEach(si => si.classList.remove('highlight', 'win-bounce', 'blinking', 'bonus-hit-glow'));
-
-      const stopIndex = Math.floor(Math.random() * slotItems.length);
-      const chosen = await spinTicker(stopIndex);
-
-      if (chosen.dataset.fruit.includes('lucky-tab')) {
-        await handleLuckyTabBonus();
-      } else {
-        const isSpecialMode = Math.random() < 0.08; // 8% chance for a Special Mode bonus
-        if (isSpecialMode) {
-          await handleBonusRound();
-        } else {
-          await handleNormalRound(chosen);
-        }
+      slotItems.forEach(si => si.classList.remove('highlight', 'win-bounce', 'blinking', 'bonus-hit-glow', 'bonus-blink-hit'));
+      
+      const bonusRoll = secureRandomFloat();
+      
+      // Check for a special bonus (30% chance)
+      if (bonusRoll < 0.30) {
+          const bonusTypeRoll = secureRandomFloat();
+          // Distribute the 30% chance evenly among the three bonuses
+          if (bonusTypeRoll < 0.33) {
+              await handleFullBoardBonus(currentTicketId);
+          } else if (bonusTypeRoll < 0.66) {
+              await handleX3MultiplierBonus(currentTicketId);
+          } else {
+              await handleLuckyTabBonus(currentTicketId);
+          }
       }
+      
+      // After handling bonus (or if no bonus), proceed with normal spin
+      const stopIndex = secureRandomInt(slotItems.length);
+      const chosen = await spinTicker(stopIndex, gameSettings.fastSpin ? 0.5 : 2);
+      await handleNormalRound(chosen);
 
       goBtn.disabled = false;
       goBtn.classList.remove('spinning');
@@ -714,6 +1096,172 @@
 
     goBtn.addEventListener('click', spin);
     initFruitButtons();
+    
+    // --- Sidebar Menu Functionality ---
+    
+    function showModal(id) {
+      document.getElementById(id).style.display = 'flex';
+      sidebar.classList.remove('active');
+      sidebarOverlay.classList.add('active');
+    }
+
+    document.getElementById('view-profile-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('profile-info').innerHTML = `
+        <p><strong>Username:</strong> <span>${userProfile.username}</span></p>
+        <p><strong>Player ID:</strong> <span>${userProfile.playerId}</span></p>
+        <p><strong>Email:</strong> <span>${userProfile.email}</span></p>
+        <p><strong>Join Date:</strong> <span>${userProfile.joinDate}</span></p>
+        <p><strong>Total Spins:</strong> <span>${totalSpins}</span></p>
+        <p><strong>Total Wins:</strong> <span>KSh ${format(totalWins)}</span></p>
+      `;
+      showModal('profile-modal');
+    });
+
+    document.getElementById('edit-profile-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('username-input').value = userProfile.username;
+      document.getElementById('avatar-input').value = userProfile.avatar;
+      showModal('edit-profile-modal');
+    });
+
+    document.getElementById('save-profile-btn').addEventListener('click', () => {
+      userProfile.username = document.getElementById('username-input').value;
+      userProfile.avatar = document.getElementById('avatar-input').value;
+      localStorage.setItem('pa_profile', JSON.stringify(userProfile));
+      showToast('Profile saved!');
+      document.getElementById('edit-profile-modal').style.display = 'none';
+    });
+    
+    document.getElementById('settings-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('sound-toggle').checked = gameSettings.soundOn;
+      document.getElementById('theme-toggle').checked = !gameSettings.darkMode;
+      document.getElementById('speed-toggle').checked = gameSettings.fastSpin;
+      showModal('settings-modal');
+    });
+    
+    document.getElementById('sound-toggle').addEventListener('change', (e) => {
+      gameSettings.soundOn = e.target.checked;
+      localStorage.setItem('pa_settings', JSON.stringify(gameSettings));
+    });
+    document.getElementById('theme-toggle').addEventListener('change', (e) => {
+      gameSettings.darkMode = !e.target.checked;
+      localStorage.setItem('pa_settings', JSON.stringify(gameSettings));
+      document.body.className = gameSettings.darkMode ? 'dark-theme' : 'light-theme';
+    });
+    document.getElementById('speed-toggle').addEventListener('change', (e) => {
+      gameSettings.fastSpin = e.target.checked;
+      localStorage.setItem('pa_settings', JSON.stringify(gameSettings));
+    });
+    
+    document.getElementById('deposit-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('deposit-amount').value = '';
+      showModal('deposit-modal');
+    });
+    document.getElementById('deposit-btn').addEventListener('click', () => {
+      const amount = parseFloat(document.getElementById('deposit-amount').value);
+      if (amount > 0) {
+        setBalance(accountBalance + amount);
+        addTransaction('Deposit', amount);
+        showToast(`Deposited KSh ${format(amount)}`);
+        document.getElementById('deposit-modal').style.display = 'none';
+      } else {
+        showToast('Invalid amount');
+      }
+    });
+
+    document.getElementById('withdraw-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('withdraw-amount').value = '';
+      showModal('withdraw-modal');
+    });
+    document.getElementById('withdraw-btn').addEventListener('click', () => {
+      const amount = parseFloat(document.getElementById('withdraw-amount').value);
+      if (amount > 0 && amount <= accountBalance) {
+        setBalance(accountBalance - amount);
+        addTransaction('Withdraw', -amount);
+        showToast(`Withdrew KSh ${format(amount)}`);
+        document.getElementById('withdraw-modal').style.display = 'none';
+      } else {
+        showToast('Invalid or insufficient balance');
+      }
+    });
+
+    document.getElementById('history-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      const list = document.getElementById('transactions-list');
+      list.innerHTML = '';
+      transactionHistory.forEach(t => {
+        const li = document.createElement('li');
+        const amountText = `${t.amount > 0 ? '+' : ''}KSh ${Math.abs(t.amount).toFixed(2)}`;
+        const amountColor = t.amount >= 0 ? 'var(--accent-1)' : 'var(--accent-2)';
+        
+        let icon = '';
+        let typeText = t.type;
+        if (t.type.includes('Bonus')) {
+            icon = `<i class="fa-solid fa-gift"></i>`;
+            typeText = `Bonus`;
+        } else if (t.type.includes('Win')) {
+            icon = `<i class="fa-solid fa-arrow-up"></i>`;
+        } else if (t.type.includes('Bet') || t.type.includes('Withdraw')) {
+            icon = `<i class="fa-solid fa-arrow-down"></i>`;
+        } else if (t.type.includes('Deposit')) {
+            icon = `<i class="fa-solid fa-sack-dollar"></i>`;
+        }
+
+        li.innerHTML = `
+          <div class="transaction-type">${icon} ${typeText}</div>
+          <div style="float: right; color: ${amountColor}; font-weight: bold;">${amountText}</div>
+          <br>
+          <small>${t.date}</small>
+          ${t.details.ticketId ? `<br><small>Ticket ID: ${t.details.ticketId.substring(0, 8)}...</small>` : ''}
+          ${t.type.includes('Bonus') ? `<br><small>(${t.type.split(':')[1].trim()})</small>` : ''}
+        `;
+        list.appendChild(li);
+      });
+      showModal('history-modal');
+    });
+
+    document.getElementById('leaderboard-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      const list = document.getElementById('leaderboard-list');
+      list.innerHTML = '';
+      const leaderboardData = generateLeaderboard();
+      leaderboardData.forEach((player, index) => {
+        const li = document.createElement('li');
+        if (player.isYou) {
+          li.classList.add('you');
+        }
+        li.innerHTML = `
+          <strong>${index + 1}.</strong> ${player.name}
+          <span class="score">KSh ${player.score}</span>
+        `;
+        list.appendChild(li);
+      });
+      showModal('leaderboard-modal');
+    });
+    
+    document.getElementById('chat-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      showModal('chat-modal');
+    });
+
+    document.getElementById('support-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('support-email').value = '';
+      document.getElementById('support-message').value = '';
+      showModal('support-modal');
+    });
+    document.getElementById('send-support-btn').addEventListener('click', () => {
+      showToast('Support request sent!');
+      document.getElementById('support-modal').style.display = 'none';
+    });
+
+    // Initial setup
+    document.body.className = gameSettings.darkMode ? 'dark-theme' : 'light-theme';
+    
   </script>
 </body>
 </html>
