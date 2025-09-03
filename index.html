@@ -272,6 +272,14 @@
         background-color: var(--accent-1);
         animation: bonus-blink 0.5s infinite alternate;
     }
+    @keyframes fruit-bonus-blink {
+      0% { background-color: var(--card-bg, rgba(255,255,255,0.05)); box-shadow: 0 0 0px var(--accent-1); }
+      50% { background-color: rgba(255, 255, 255, 0.15); box-shadow: 0 0 10px var(--accent-1); }
+      100% { background-color: var(--card-bg, rgba(255,255,255,0.05)); box-shadow: 0 0 0px var(--accent-1); }
+    }
+    .slot-item.fruit-bonus-blink {
+      animation: fruit-bonus-blink 1s infinite;
+    }
     
     /* Modal Styles */
     .modal {
@@ -909,9 +917,6 @@
       document.querySelector('[data-fruit="small-bell-x3-left"]')
     ];
     
-    const luckyTabs = slotItems.filter(item => item.dataset.fruit.includes('lucky-tab'));
-    const x3Multipliers = slotItems.filter(item => item.dataset.fruit.includes('x3'));
-    
     const synth = new Tone.Synth().toDestination();
     async function play(note) {
       if (!gameSettings.soundOn) return;
@@ -955,7 +960,9 @@
 
       if (dataFruit.includes('bar-x50')) {
           multiplier = 50;
-      } else if (dataFruit.includes('apple-x5')) {
+      } else if (dataFruit.includes('small-apple-x3-top')) {
+          multiplier = 3;
+      } else if (dataFruit.includes('apple-x5') || dataFruit.includes('apple-left-middle') || dataFruit.includes('apple-right-middle') || dataFruit.includes('apple-bottom-middle')) {
           multiplier = 5;
       } else if (dataFruit.includes('x3')) {
           multiplier = 3;
@@ -973,7 +980,7 @@
           }
       } else if (dataFruit.includes('lucky-tab')) {
           multiplier = 0;
-      } else if (dataFruit.includes('apple') || dataFruit.includes('big-bar')) {
+      } else if (dataFruit.includes('big-bar')) {
           multiplier = 0;
       }
 
@@ -988,6 +995,10 @@
     }
     
     async function handleNormalRound(chosen) {
+      if (chosen.dataset.fruit.includes('lucky-tab')) {
+        await handleLuckyBonus();
+        return;
+      }
       const totalWin = calculatePayout(chosen, selectedFruits, currentBetAmount);
       
       if (totalWin > 0) {
@@ -1008,47 +1019,175 @@
       saveStats(totalSpins + 1, totalWins);
     }
     
-    async function showBonusVisuals(elements, type) {
-      boardEl.classList.add('blinking');
-      elements.forEach(el => el.classList.add('bonus-hit-glow'));
-      showToast(`${type} BONUS!`);
-      play('F6');
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      boardEl.classList.remove('blinking');
-      elements.forEach(el => el.classList.remove('bonus-hit-glow'));
+    let currentTicketId = '';
+
+    // --- New Bonus Functions ---
+    async function finalizeBonus(totalWin) {
+      if (totalWin > 0) {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.35 }
+        });
+        play('C6');
+      }
+
+      // Await to ensure animations finish before removing glow
+      await new Promise(r => setTimeout(r, 2000));
+      slotItems.forEach(si => si.classList.remove('bonus-blink-hit', 'bonus-hit-glow'));
+
+      showToast(`Bonus Win: KSh ${totalWin.toFixed(2)}`);
+      setBalance(accountBalance + totalWin);
+      winEl.textContent = format(totalWin);
+      winningEl.textContent = Math.round(totalWin);
+      saveStats(totalSpins + 1, totalWins + totalWin);
     }
 
-    async function handleFullBoardBonus(ticketId) {
-      const bonusWin = currentStake * 50; // Increased payout for full board
-      await showBonusVisuals(slotItems, "FULL BOARD");
-      addTransaction('Bonus: Full Board', bonusWin, { ticketId: ticketId });
-      setBalance(accountBalance + bonusWin);
-      winningEl.textContent = bonusWin;
-      confetti({ particleCount: 150, spread: 120, origin: { y: 0.5 } });
-      play('C6');
+    // Helper function to animate ticker and handle payouts during a bonus round
+    async function animateBonusHits(fruitsToHit, basePayoutMultiplier, bonusType, specialRule = null) {
+      let totalWin = 0;
+      const originalLastStopIndex = lastStopIndex;
+      
+      // Set up the intro animation
+      slotItems.forEach(item => item.classList.add('fruit-bonus-blink'));
+      play('F5');
+      await new Promise(r => setTimeout(r, 1500));
+      slotItems.forEach(item => item.classList.remove('fruit-bonus-blink'));
+      showToast(`${bonusType} Bonus!`);
+
+      // Animate each hit
+      for (const fruit of fruitsToHit) {
+        const fruitIndex = slotItems.indexOf(fruit);
+        
+        // Ticker animation
+        const cycles = gameSettings.fastSpin ? 0.5 : 2;
+        const totalSteps = cycles * slotItems.length + ((fruitIndex - lastStopIndex + slotItems.length) % slotItems.length);
+        let delay = gameSettings.fastSpin ? 5 : 35;
+        const easingSteps = 20;
+
+        for (let i = 0; i <= totalSteps; i++) {
+          slotItems.forEach(si => si.classList.remove('highlight'));
+          const idx = (lastStopIndex + i) % slotItems.length;
+          slotItems[idx].classList.add('highlight');
+          if (i % 2 === 0) play('C4');
+          if (i >= totalSteps - easingSteps) {
+            delay += 15;
+          }
+          await new Promise(r => setTimeout(r, delay));
+        }
+        lastStopIndex = fruitIndex;
+
+        // Apply glow effect and sound
+        fruit.classList.add('bonus-blink-hit');
+        play('E4');
+        
+        // Calculate payout for this hit
+        let win = 0;
+        const fruitText = fruit.textContent.trim();
+        const fruitKey = categories.find(c => fruitText.includes(c.emoji.trim()))?.key;
+        
+        if (specialRule === 'allBarPayout' && fruit.dataset.fruit.includes('bar')) {
+            // Special rule for Bar bonus: Payout is based on the normal bar multiplier
+            const dataFruit = fruit.dataset.fruit;
+            const multiplier = dataFruit.includes('x50') ? 50 : 0;
+            if (selectedFruits[fruitKey]) {
+                 win = selectedFruits[fruitKey] * currentBetAmount * multiplier;
+            }
+        } else if (specialRule === 'normalPayout') {
+            // Bar bonus on other fruits and other bonus types with normal payouts
+            win = calculatePayout(fruit, selectedFruits, currentBetAmount);
+        } else if (selectedFruits[fruitKey]) {
+            // Standard bonus payout logic
+            win = selectedFruits[fruitKey] * currentBetAmount * basePayoutMultiplier;
+        }
+
+        if (win > 0) {
+          totalWin += win;
+          addTransaction('Bonus Win', win, { bonusType: bonusType, fruit: fruit.dataset.fruit });
+        }
+        await new Promise(r => setTimeout(r, 800)); // Pause after each hit
+      }
+      
+      await finalizeBonus(totalWin);
     }
     
-    async function handleX3MultiplierBonus(ticketId) {
-      const bonusWin = currentStake * 10; // Increased payout for x3
-      await showBonusVisuals(x3Multipliers, "x3 Multiplier");
-      addTransaction('Bonus: x3 Multiplier', bonusWin, { ticketId: ticketId });
-      setBalance(accountBalance + bonusWin);
-      winningEl.textContent = bonusWin;
-      confetti({ particleCount: 100, spread: 90, origin: { y: 0.5 } });
-      play('C6');
+    async function handleX3Bonus() {
+        const x3Fruits = slotItems.filter(item => item.dataset.fruit.includes('x3'));
+        let shuffledX3Fruits = x3Fruits.sort(() => secureRandomFloat() - 0.5);
+        await animateBonusHits(shuffledX3Fruits, 3, 'X3');
     }
     
-    async function handleLuckyTabBonus(ticketId) {
-        const bonusWin = currentStake * 15; // Increased payout for lucky tab
-        await showBonusVisuals(luckyTabs, "LUCKY TAB");
-        addTransaction('Bonus: Lucky Tab', bonusWin, { ticketId: ticketId });
-        setBalance(accountBalance + bonusWin);
-        winningEl.textContent = bonusWin;
-        confetti({ particleCount: 150, spread: 120, origin: { y: 0.5 } });
-        play('C6');
+    async function handleBigFruitsBonus() {
+        const bigFruits = slotItems.filter(item => item.dataset.fruit.includes('big-mango') || item.dataset.fruit.includes('big-orange') || item.dataset.fruit.includes('big-bell'));
+        let selectedBigFruits = [];
+        const types = [];
+        while(types.length < 3) {
+          const fruit = bigFruits[secureRandomInt(bigFruits.length)];
+          const fruitType = fruit.dataset.fruit.includes('mango') ? 'mango' : fruit.dataset.fruit.includes('orange') ? 'orange' : 'bell';
+          if (!types.includes(fruitType)) {
+            selectedBigFruits.push(fruit);
+            types.push(fruitType);
+          }
+        }
+        selectedBigFruits.sort(() => secureRandomFloat() - 0.5);
+        await animateBonusHits(selectedBigFruits, 10, 'Big Fruits');
     }
-    
-    let currentTicketId = '';
+
+    async function handleAllApplesBonus() {
+        const allApples = slotItems.filter(item => item.dataset.fruit.includes('apple') && !item.dataset.fruit.includes('x3'));
+        let shuffledApples = allApples.sort(() => secureRandomFloat() - 0.5);
+        await animateBonusHits(shuffledApples, 5, 'All Apples');
+    }
+
+    async function handleBarBonus() {
+        const barFruits = slotItems.filter(item => item.dataset.fruit.includes('bar'));
+        const otherFruits = slotItems.filter(item => !item.dataset.fruit.includes('bar'));
+        const numToHit = secureRandomInt(3) + 2; // 2 to 4 fruits
+        let selectedOtherFruits = otherFruits.sort(() => secureRandomFloat() - 0.5).slice(0, numToHit);
+        
+        const fruitsToHit = [...barFruits, ...selectedOtherFruits];
+        fruitsToHit.sort(() => secureRandomFloat() - 0.5); // Randomize the hit order
+        
+        await animateBonusHits(fruitsToHit, 0, 'BAR', 'normalPayout');
+    }
+
+    // New Lucky Bonus function
+    async function handleLuckyBonus() {
+        let totalWin = 0;
+        showToast('Lucky Bonus!');
+        play('F5');
+
+        // Light up both lucky tabs for 7 seconds
+        const luckyTabs = slotItems.filter(item => item.dataset.fruit.includes('lucky-tab'));
+        luckyTabs.forEach(tab => tab.classList.add('bonus-hit-glow'));
+        await new Promise(r => setTimeout(r, 7000));
+        luckyTabs.forEach(tab => tab.classList.remove('bonus-hit-glow'));
+
+        // Choose 2-3 other random fruits to hit
+        const fruitsToHitCount = secureRandomInt(2) + 2; // 2 or 3 fruits
+        const nonLuckyFruits = slotItems.filter(item => !item.dataset.fruit.includes('lucky-tab'));
+        let shuffledFruits = nonLuckyFruits.sort(() => secureRandomFloat() - 0.5);
+        const fruitsToHit = shuffledFruits.slice(0, fruitsToHitCount);
+
+        for (const fruit of fruitsToHit) {
+            const fruitIndex = slotItems.indexOf(fruit);
+            // Spin ticker to the fruit
+            await spinTicker(fruitIndex, gameSettings.fastSpin ? 0.5 : 2);
+            // Apply glow and sound
+            fruit.classList.add('bonus-blink-hit');
+            play('E4');
+            // Calculate and add normal payout
+            const win = calculatePayout(fruit, selectedFruits, currentBetAmount);
+            if (win > 0) {
+              totalWin += win;
+              addTransaction('Bonus Win', win, { bonusType: 'Lucky Bonus', fruit: fruit.dataset.fruit });
+            }
+            await new Promise(r => setTimeout(r, 800)); // Pause before next hit
+        }
+
+        await finalizeBonus(totalWin);
+    }
+
 
     async function spin() {
       if (currentStake === 0) {
@@ -1070,25 +1209,29 @@
       winningEl.textContent = '00';
       slotItems.forEach(si => si.classList.remove('highlight', 'win-bounce', 'blinking', 'bonus-hit-glow', 'bonus-blink-hit'));
       
-      const bonusRoll = secureRandomFloat();
-      
-      // Check for a special bonus (30% chance)
-      if (bonusRoll < 0.30) {
-          const bonusTypeRoll = secureRandomFloat();
-          // Distribute the 30% chance evenly among the three bonuses
-          if (bonusTypeRoll < 0.33) {
-              await handleFullBoardBonus(currentTicketId);
-          } else if (bonusTypeRoll < 0.66) {
-              await handleX3MultiplierBonus(currentTicketId);
-          } else {
-              await handleLuckyTabBonus(currentTicketId);
-          }
+      const isBonusRound = secureRandomFloat() < 0.2; // 20% chance for a bonus round
+
+      if (isBonusRound) {
+        const bonusType = secureRandomInt(4);
+        switch (bonusType) {
+            case 0:
+                await handleX3Bonus();
+                break;
+            case 1:
+                await handleBigFruitsBonus();
+                break;
+            case 2:
+                await handleAllApplesBonus();
+                break;
+            case 3:
+                await handleBarBonus();
+                break;
+        }
+      } else {
+        const stopIndex = secureRandomInt(slotItems.length);
+        const chosen = await spinTicker(stopIndex, gameSettings.fastSpin ? 0.5 : 2);
+        await handleNormalRound(chosen);
       }
-      
-      // After handling bonus (or if no bonus), proceed with normal spin
-      const stopIndex = secureRandomInt(slotItems.length);
-      const chosen = await spinTicker(stopIndex, gameSettings.fastSpin ? 0.5 : 2);
-      await handleNormalRound(chosen);
 
       goBtn.disabled = false;
       goBtn.classList.remove('spinning');
