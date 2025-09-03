@@ -890,29 +890,27 @@
       document.querySelector('[data-fruit="apple-x5"]'),
       document.querySelector('[data-fruit="small-apple-x3-top"]'),
       document.querySelector('[data-fruit="big-mango-top-right"]'),
-      document.querySelector('[data-fruit="small-bell-x3-left"]'),
-      document.querySelector('[data-fruit="apple-left-middle"]'),
-      document.querySelector('[data-fruit="lucky-tab-left"]'),
-      document.querySelector('[data-fruit="small-star-x3-left"]'),
-      document.querySelector('[data-fruit="big-double-star-left"]'),
       document.querySelector('[data-fruit="big-watermelon-right"]'),
       document.querySelector('[data-fruit="small-watermelon-x3-right"]'),
       document.querySelector('[data-fruit="lucky-tab-right"]'),
       document.querySelector('[data-fruit="apple-right-middle"]'),
       document.querySelector('[data-fruit="small-orange-x3-right"]'),
-      document.querySelector('[data-fruit="big-mango-bottom-left"]'),
-      document.querySelector('[data-fruit="small-mango-x3-bottom"]'),
-      document.querySelector('[data-fruit="apple-bottom-middle"]'),
-      document.querySelector('[data-fruit="big-77-bottom"]'),
-      document.querySelector('[data-fruit="small-7-x3-bottom"]'),
-      document.querySelector('[data-fruit="big-bell-bottom"]'),
       document.querySelector('[data-fruit="big-orange-bottom-right"]'),
+      document.querySelector('[data-fruit="big-bell-bottom"]'),
+      document.querySelector('[data-fruit="small-7-x3-bottom"]'),
+      document.querySelector('[data-fruit="big-77-bottom"]'),
+      document.querySelector('[data-fruit="apple-bottom-middle"]'),
+      document.querySelector('[data-fruit="small-mango-x3-bottom"]'),
+      document.querySelector('[data-fruit="big-mango-bottom-left"]'),
+      document.querySelector('[data-fruit="big-double-star-left"]'),
+      document.querySelector('[data-fruit="small-star-x3-left"]'),
+      document.querySelector('[data-fruit="lucky-tab-left"]'),
+      document.querySelector('[data-fruit="apple-left-middle"]'),
+      document.querySelector('[data-fruit="small-bell-x3-left"]')
     ];
     
-    const normalApples = slotItems.filter(item => item.dataset.fruit.includes('apple') && !item.dataset.fruit.includes('x3'));
-    const x3Multipliers = slotItems.filter(item => item.dataset.fruit.includes('x3'));
     const luckyTabs = slotItems.filter(item => item.dataset.fruit.includes('lucky-tab'));
-    const allBars = slotItems.filter(item => item.dataset.fruit.includes('bar'));
+    const x3Multipliers = slotItems.filter(item => item.dataset.fruit.includes('x3'));
     
     const synth = new Tone.Synth().toDestination();
     async function play(note) {
@@ -1010,144 +1008,46 @@
       saveStats(totalSpins + 1, totalWins);
     }
     
-    async function bonusTicker(targets, cycles = 1, speed = 5, onHit = null) {
-      for (let c = 0; c < cycles; c++) {
-        for (let i = 0; i < slotItems.length; i++) {
-          slotItems.forEach(si => si.classList.remove('highlight'));
-          slotItems[i].classList.add('highlight');
-          await new Promise(r => setTimeout(r, speed));
-        }
-      }
-      
-      // Hit each target
-      for (const target of targets) {
-        slotItems.forEach(si => si.classList.remove('highlight'));
-        const startIndex = slotItems.indexOf(slotItems.find(el => el.dataset.fruit === lastStopIndex));
-        const targetIndex = slotItems.indexOf(target);
-        const totalSteps = slotItems.length + ((targetIndex - startIndex + slotItems.length) % slotItems.length);
-        
-        let delay = 5;
-        const easingSteps = 10;
-        
-        for (let i = 0; i < totalSteps; i++) {
-          slotItems.forEach(si => si.classList.remove('highlight'));
-          const idx = (startIndex + i) % slotItems.length;
-          slotItems[idx].classList.add('highlight');
-          if(i % 2 === 0) play('C4');
-          if (i >= totalSteps - easingSteps) {
-             delay += 10;
-          }
-          await new Promise(r => setTimeout(r, delay));
-        }
-        
-        target.classList.add('bonus-blink-hit');
-        play('E6');
-        target.style.transform = 'scale(1.2)';
-        
-        if (onHit) await onHit(target);
-        
-        await new Promise(r => setTimeout(r, 500));
-        target.style.transform = '';
-        lastStopIndex = target.dataset.fruit;
-      }
-
-      slotItems.forEach(si => si.classList.remove('highlight'));
-    }
-
-    async function handleBonusRound(type) {
-      goBtn.disabled = true;
-      goBtn.classList.add('spinning');
-      winEl.textContent = '0.00';
-      winningEl.textContent = '00';
-      slotItems.forEach(si => si.classList.remove('highlight', 'win-bounce', 'blinking', 'bonus-hit-glow', 'bonus-blink-hit'));
-      
-      // Anticipation phase
+    async function showBonusVisuals(elements, type) {
       boardEl.classList.add('blinking');
-      play('A2');
-      await new Promise(resolve => setTimeout(resolve, 7000));
+      elements.forEach(el => el.classList.add('bonus-hit-glow'));
+      showToast(`${type} BONUS!`);
+      play('F6');
+      await new Promise(resolve => setTimeout(resolve, 2000));
       boardEl.classList.remove('blinking');
-      
-      let bonusWin = 0;
-      let message = '';
-      
-      // Bonus logic based on type
-      if (type === 'all-apples') {
-        let currentWin = 0;
-        await bonusTicker(normalApples, 2, 50, async (el) => {
-            const payout = calculatePayout(el, selectedFruits, currentBetAmount);
-            currentWin += payout;
-            setBalance(accountBalance + payout);
-            winningEl.textContent = Math.round(currentWin);
-            winEl.textContent = format(currentWin);
-            totalWins += payout;
-        });
-        bonusWin = currentWin;
-        message = 'ALL APPLES BONUS!';
-        confetti({ particleCount: 150, spread: 120, origin: { y: 0.5 } });
-      } else if (type === 'x3-multiplier') {
-        const x3Items = [...x3Multipliers].sort(() => 0.5 - Math.random());
-        let currentWin = 0;
-        await bonusTicker(x3Items, 2, 50, async (el) => {
-            const payout = calculatePayout(el, selectedFruits, currentBetAmount);
-            currentWin += payout;
-            setBalance(accountBalance + payout);
-            winningEl.textContent = Math.round(currentWin);
-            winEl.textContent = format(currentWin);
-            totalWins += payout;
-        });
-        bonusWin = currentWin;
-        message = 'X3 MULTIPLIER!';
-      } else if (type === 'lucky-tab') {
-        const luckyItems = [...luckyTabs].sort(() => 0.5 - Math.random());
-        let currentWin = 0;
-        await bonusTicker(luckyItems, 2, 50, async (el) => {
-            const payout = calculatePayout(el, selectedFruits, currentBetAmount);
-            currentWin += payout;
-            setBalance(accountBalance + payout);
-            winningEl.textContent = Math.round(currentWin);
-            winEl.textContent = format(currentWin);
-            totalWins += payout;
-        });
-        bonusWin = currentWin;
-        message = 'LUCKY TAB BONUS!';
-      } else if (type === 'bar') {
-        const barItems = allBars.sort(() => 0.5 - Math.random());
-        let currentWin = 0;
-        await bonusTicker(barItems, 2, 50, async (el) => {
-            const payout = calculatePayout(el, selectedFruits, currentBetAmount);
-            currentWin += payout;
-            setBalance(accountBalance + payout);
-            winningEl.textContent = Math.round(currentWin);
-            winEl.textContent = format(currentWin);
-            totalWins += payout;
-        });
-        bonusWin = currentWin;
-        message = 'BAR BONUS!';
-      } else if (type === 'full-board') {
-        const bonusFruit = categories[secureRandomInt(categories.length)];
-        let currentWin = 0;
-        await bonusTicker(slotItems, 1, 10, async (el) => {
-            el.innerHTML = `<span>${bonusFruit.emoji}</span>`;
-            const payout = currentStake * 5;
-            currentWin += payout;
-            setBalance(accountBalance + payout);
-            winningEl.textContent = Math.round(currentWin);
-            winEl.textContent = format(currentWin);
-            totalWins += payout;
-        });
-        bonusWin = currentWin;
-        message = `FULL BOARD BONUS: ${bonusFruit.emoji}`;
-        confetti({ particleCount: 200, spread: 150, origin: { y: 0.5 } });
-      }
-
-      // Finalize bonus round
-      showToast(message);
-      addTransaction('Bonus', bonusWin, { ticketId: currentTicketId, bonusType: type });
-      saveStats(totalSpins + 1, totalWins);
-      goBtn.disabled = false;
-      goBtn.classList.remove('spinning');
+      elements.forEach(el => el.classList.remove('bonus-hit-glow'));
     }
 
+    async function handleFullBoardBonus(ticketId) {
+      const bonusWin = currentStake * 50; // Increased payout for full board
+      await showBonusVisuals(slotItems, "FULL BOARD");
+      addTransaction('Bonus: Full Board', bonusWin, { ticketId: ticketId });
+      setBalance(accountBalance + bonusWin);
+      winningEl.textContent = bonusWin;
+      confetti({ particleCount: 150, spread: 120, origin: { y: 0.5 } });
+      play('C6');
+    }
+    
+    async function handleX3MultiplierBonus(ticketId) {
+      const bonusWin = currentStake * 10; // Increased payout for x3
+      await showBonusVisuals(x3Multipliers, "x3 Multiplier");
+      addTransaction('Bonus: x3 Multiplier', bonusWin, { ticketId: ticketId });
+      setBalance(accountBalance + bonusWin);
+      winningEl.textContent = bonusWin;
+      confetti({ particleCount: 100, spread: 90, origin: { y: 0.5 } });
+      play('C6');
+    }
+    
+    async function handleLuckyTabBonus(ticketId) {
+        const bonusWin = currentStake * 15; // Increased payout for lucky tab
+        await showBonusVisuals(luckyTabs, "LUCKY TAB");
+        addTransaction('Bonus: Lucky Tab', bonusWin, { ticketId: ticketId });
+        setBalance(accountBalance + bonusWin);
+        winningEl.textContent = bonusWin;
+        confetti({ particleCount: 150, spread: 120, origin: { y: 0.5 } });
+        play('C6');
+    }
+    
     let currentTicketId = '';
 
     async function spin() {
@@ -1168,8 +1068,6 @@
       goBtn.classList.add('spinning');
       winEl.textContent = '0.00';
       winningEl.textContent = '00';
-      
-      // Clear all previous highlights
       slotItems.forEach(si => si.classList.remove('highlight', 'win-bounce', 'blinking', 'bonus-hit-glow', 'bonus-blink-hit'));
       
       const bonusRoll = secureRandomFloat();
@@ -1177,24 +1075,21 @@
       // Check for a special bonus (30% chance)
       if (bonusRoll < 0.30) {
           const bonusTypeRoll = secureRandomFloat();
-          if (bonusTypeRoll < 0.20) {
-              await handleBonusRound('all-apples');
-          } else if (bonusTypeRoll < 0.40) {
-              await handleBonusRound('x3-multiplier');
-          } else if (bonusTypeRoll < 0.60) {
-              await handleBonusRound('lucky-tab');
-          } else if (bonusTypeRoll < 0.80) {
-              await handleBonusRound('bar');
+          // Distribute the 30% chance evenly among the three bonuses
+          if (bonusTypeRoll < 0.33) {
+              await handleFullBoardBonus(currentTicketId);
+          } else if (bonusTypeRoll < 0.66) {
+              await handleX3MultiplierBonus(currentTicketId);
           } else {
-              await handleBonusRound('full-board');
+              await handleLuckyTabBonus(currentTicketId);
           }
-      } else {
-        // Normal spin (70% chance)
-        const stopIndex = secureRandomInt(slotItems.length);
-        const chosen = await spinTicker(stopIndex, gameSettings.fastSpin ? 0.5 : 2);
-        await handleNormalRound(chosen);
       }
       
+      // After handling bonus (or if no bonus), proceed with normal spin
+      const stopIndex = secureRandomInt(slotItems.length);
+      const chosen = await spinTicker(stopIndex, gameSettings.fastSpin ? 0.5 : 2);
+      await handleNormalRound(chosen);
+
       goBtn.disabled = false;
       goBtn.classList.remove('spinning');
     }
@@ -1322,7 +1217,7 @@
           <br>
           <small>${t.date}</small>
           ${t.details.ticketId ? `<br><small>Ticket ID: ${t.details.ticketId.substring(0, 8)}...</small>` : ''}
-          ${t.details.bonusType ? `<br><small>(${t.details.bonusType})</small>` : ''}
+          ${t.type.includes('Bonus') ? `<br><small>(${t.type.split(':')[1].trim()})</small>` : ''}
         `;
         list.appendChild(li);
       });
